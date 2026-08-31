@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Screen Side
+GenericName=Monitor Arrangement
+Comment=Choose which side of the laptop screen your external monitor sits on
+Exec=screen-side-gui
+Icon=io.github.danieltyukov.ScreenSide
+Terminal=false
+Categories=Settings;HardwareSettings;GTK;
+Keywords=monitor;display;screen;arrange;left;right;above;below;dual;multi;pointer;mouse;displaylink;
+StartupNotify=true
+StartupWMClass=io.github.danieltyukov.ScreenSide
