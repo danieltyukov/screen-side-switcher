@@ -5,6 +5,7 @@
 //! [`layout::Arrangement`], compute a [`model::Layout`] and hand it back.
 
 pub mod error;
+pub mod layout;
 pub mod model;
 
 pub use error::Error;

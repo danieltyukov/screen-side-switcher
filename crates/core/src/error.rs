@@ -2,6 +2,9 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
+    /// The layout maths refused the request.
+    #[error(transparent)]
+    Layout(#[from] crate::layout::LayoutError),
     /// No backend fits this session; the message says what is missing.
     #[error("{0}")]
     NoBackend(String),
