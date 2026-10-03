@@ -224,7 +224,7 @@ and prints without calling the system.
 | Backend | Query | Apply | Primary | Temporary | Verify | Remembers |
 |---|---|---|---|---|---|---|
 | gnome | `GetCurrentState` over zbus (blocking) | `ApplyMonitorsConfig`, method 2/1/0, keeps scale, transform, mode; passes the current `layout-mode` when `supports-changing-layout-mode` | yes | yes | yes | yes |
-| kde | `kscreen-doctor --json` | `kscreen-doctor output.N.position.X,Y ...` in one call; primary via `output.N.priority.1` (Plasma 6) or `output.N.primary` (Plasma 5), chosen from `kscreen-doctor --version` | yes | no | no | yes |
+| kde | `kscreen-doctor --json` | `kscreen-doctor output.N.position.X,Y ...` in one call; primary via `output.N.priority.1` (Plasma 6) or `output.N.primary` (Plasma 5), chosen by whether its JSON has `priority` fields | yes | no | no | yes |
 | wlroots | `wlr-randr --json` | `wlr-randr --output N --pos X,Y ...` in one call (one atomic configuration) | no | no (never persists) | yes, `--dryrun` | no |
 | x11 | `xrandr --current --props` (geometry lines and EDID blocks) | `xrandr --output N --pos XxY ... [--output P --primary]` in one call | yes | no (never persists) | no | no |
 | windows | `QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS)` + `DisplayConfigGetDeviceInfo` for names and EDID ids | `SetDisplayConfig` with `SDC_APPLY | SDC_USE_SUPPLIED_DISPLAY_CONFIG | SDC_ALLOW_CHANGES` (+ `SDC_SAVE_TO_DATABASE` when persistent; `SDC_VALIDATE` for verify) | yes (origin) | yes | yes | yes |
