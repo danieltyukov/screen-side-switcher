@@ -125,6 +125,13 @@ export function Arrange({ state, backend, act, busy }: { state: AppState; backen
             {!custom && !arr.aligned && <p className="hint">The screens line up in no named way. Pick one to line them up.</p>}
           </div>
 
+          {caps?.confirms && (
+            <p className="hint confirms">
+              GNOME asks you to keep each change made here, as it does for its own display settings. Changes from the
+              tray, the shortcut and saved layouts marked Auto do not ask, and last until the screens reconnect.
+            </p>
+          )}
+
           {caps?.primary && selectedScreen && (
             <div className="row">
               <span className="row-label">Primary</span>

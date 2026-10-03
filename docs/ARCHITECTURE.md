@@ -54,6 +54,16 @@ a point reflection, so start and end alignment swap too; otherwise a top
 aligned screen on the left and one above would meet in the corner once
 mirrored.
 
+## Saved, temporary and unattended changes
+
+A change from the window or the command line is saved by the system, so it
+comes back after a reconnect. GNOME asks the person on screen to keep a saved
+change and reverts it after 20 seconds without an answer (the backend's
+`confirms` capability). Nobody answers that prompt for the watcher, the tray,
+a hotkey or `screen-side-gui --toggle`, so those use `backend::unattended`,
+which makes a temporary change where saving would ask. Saved layouts marked
+Auto bring the arrangement back after a reconnect instead.
+
 ## Saved layouts
 
 A layout is saved as intent: the anchor, each screen's side in order, the

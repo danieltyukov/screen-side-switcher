@@ -35,6 +35,8 @@ export interface Capabilities {
   verify: boolean;
   remembers: boolean;
   origin: 'top_left' | 'primary';
+  /** A saved change asks the person to keep it (GNOME). */
+  confirms: boolean;
 }
 
 export interface Placement {

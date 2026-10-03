@@ -56,12 +56,12 @@ const DELL: Physical = { id: 'HDMI-1', connector: 'HDMI-1', name: 'DELL U2723QE'
 const LG: Physical = { id: 'DP-1', connector: 'DP-1', name: 'LG HDR 4K', builtin: false, width: 1920, height: 1080, scale: 1.25 };
 
 const CAPABILITIES: Record<MockKind, Capabilities> = {
-  gnome: { primary: true, temporary: true, verify: true, remembers: true, origin: 'top_left' },
-  kde: { primary: true, temporary: false, verify: false, remembers: true, origin: 'top_left' },
-  wlroots: { primary: false, temporary: false, verify: true, remembers: false, origin: 'top_left' },
-  x11: { primary: true, temporary: false, verify: false, remembers: false, origin: 'top_left' },
-  windows: { primary: true, temporary: true, verify: true, remembers: true, origin: 'primary' },
-  macos: { primary: true, temporary: true, verify: false, remembers: true, origin: 'primary' },
+  gnome: { primary: true, temporary: true, verify: true, remembers: true, origin: 'top_left', confirms: true },
+  kde: { primary: true, temporary: false, verify: false, remembers: true, origin: 'top_left', confirms: false },
+  wlroots: { primary: false, temporary: false, verify: true, remembers: false, origin: 'top_left', confirms: false },
+  x11: { primary: true, temporary: false, verify: false, remembers: false, origin: 'top_left', confirms: false },
+  windows: { primary: true, temporary: true, verify: true, remembers: true, origin: 'primary', confirms: false },
+  macos: { primary: true, temporary: true, verify: false, remembers: true, origin: 'primary', confirms: false },
 };
 
 const SIDES: Side[] = ['left', 'right', 'above', 'below'];

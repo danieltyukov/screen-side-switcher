@@ -59,6 +59,11 @@ pick the one to move or move them all. Line up decides how the screens meet
 when they are different heights: top, centred or bottom. Make primary moves
 the menu bar or taskbar to the selected screen.
 
+On GNOME, a change made in the window or with the command line is saved, and
+GNOME asks you to keep it, as it does for its own display settings. Changes
+from the tray, the shortcut and automatic layouts do not ask, and last until
+the screens reconnect.
+
 Under Layouts, save the arrangement for the screens connected now and mark it
 Auto to have it put back whenever they connect. Under Settings, keep Screen
 Side running in the background with a tray icon, start it at login, and set up

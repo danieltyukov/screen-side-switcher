@@ -243,3 +243,15 @@ describe('App: unusual states', () => {
     expect(screen.queryByText(/No layouts yet/)).toBeNull();
   });
 });
+
+describe('App: confirmation on GNOME', () => {
+  it('says GNOME will ask to keep a change', async () => {
+    await setup({ screens: 2, backend: 'gnome' });
+    expect(screen.getByText(/GNOME asks you to keep each change/)).toBeInTheDocument();
+  });
+
+  it('says nothing where no prompt appears', async () => {
+    await setup({ screens: 2, backend: 'windows' });
+    expect(screen.queryByText(/GNOME asks you to keep each change/)).toBeNull();
+  });
+});

@@ -24,7 +24,10 @@ and `screen-side watch` do the remembering.
 (persistent), 1 (temporary) or 0 (verify). Each logical monitor keeps its
 scale, transform, mode and any mirrored monitors; only positions and the
 primary flag change. The current `layout-mode` is passed back when Mutter
-allows changing it. Cinnamon's `org.cinnamon.Muffin.DisplayConfig` has the
+allows changing it, and each monitor's underscanning and colour mode are
+passed back so a move does not reset them. A saved change makes GNOME Shell
+ask "Keep these display settings?"; unattended changes are temporary for that
+reason (see ARCHITECTURE.md). Cinnamon's `org.cinnamon.Muffin.DisplayConfig` has the
 same interface and is picked when Mutter is absent (untested).
 
 Tested: fixtures for logical and physical layout modes, fractional scales,
