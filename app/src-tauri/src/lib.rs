@@ -31,6 +31,9 @@ pub struct Shared {
     pub desktop: Desktop,
     /// A global shortcut that could not be registered, shown in the window.
     pub hotkey_error: Mutex<Option<String>>,
+    /// The latest failure of something with no window of its own (the tray,
+    /// the hotkey, the watcher), shown once the next time the window draws.
+    pub background_error: Mutex<Option<String>>,
 }
 
 impl Shared {
@@ -47,7 +50,18 @@ impl Shared {
             store,
             desktop: shortcut::desktop(&SystemProbe),
             hotkey_error: Mutex::new(None),
+            background_error: Mutex::new(None),
         }
+    }
+
+    /// Keeps a failure for the window; the newest one wins.
+    pub fn note(&self, message: impl Into<String>) {
+        *self.background_error.lock().unwrap() = Some(message.into());
+    }
+
+    /// The failure to show, once.
+    pub fn take_notice(&self) -> Option<String> {
+        self.background_error.lock().unwrap().take()
     }
 
     /// Whether this app registers the global shortcut itself.
@@ -169,4 +183,27 @@ fn start(background_launch: bool) {
         })
         .run(tauri::generate_context!())
         .expect("Screen Side could not start");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_background_failure_is_shown_once() {
+        let dir = std::env::temp_dir().join("screen-side-shared-test");
+        let shared = Shared {
+            backend: None,
+            detect_error: None,
+            store: Store::at(&dir),
+            desktop: Desktop::OtherX11,
+            hotkey_error: Mutex::new(None),
+            background_error: Mutex::new(None),
+        };
+        assert_eq!(shared.take_notice(), None);
+        shared.note("Could not apply 'office': the screens changed");
+        shared.note("A later problem");
+        assert_eq!(shared.take_notice().as_deref(), Some("A later problem"));
+        assert_eq!(shared.take_notice(), None);
+    }
 }

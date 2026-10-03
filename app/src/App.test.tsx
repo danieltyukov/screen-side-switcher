@@ -212,3 +212,34 @@ describe('App: settings', () => {
     expect(screen.getByText('Screen Side 2.0.0')).toBeInTheDocument();
   });
 });
+
+describe('App: unusual states', () => {
+  it('offers the sides when the screens overlap', async () => {
+    const { user, backend } = await setup({ screens: 2, custom: true });
+    const sides = group(/Side/);
+    for (const name of ['Left', 'Right', 'Above', 'Below']) {
+      expect(within(sides).getByRole('button', { name })).toHaveAttribute('aria-pressed', 'false');
+    }
+    expect(screen.getByText(/not side by side/)).toBeInTheDocument();
+    await user.click(within(sides).getByRole('button', { name: 'Left' }));
+    await waitFor(async () => expect((await backend.getState()).custom).toBe(false));
+  });
+
+  it('shows a problem next to working screens, and dismissing it sticks', async () => {
+    const { user, backend } = await setup({ screens: 2, warning: 'Ctrl+Alt+K could not be registered' });
+    expect(screen.getByRole('alert')).toHaveTextContent('Ctrl+Alt+K could not be registered');
+    expect(group(/Side/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByRole('alert')).toBeNull();
+    backend.simulateHotplug();
+    await screen.findByRole('button', { name: /LG HDR 4K/ });
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('says when the layouts file cannot be read', async () => {
+    const { user } = await setup({ screens: 2, layoutsError: '/x/layouts.json could not be read' });
+    await user.click(screen.getByRole('tab', { name: 'Layouts' }));
+    expect(screen.getByText(/layouts\.json could not be read/)).toBeInTheDocument();
+    expect(screen.queryByText(/No layouts yet/)).toBeNull();
+  });
+});

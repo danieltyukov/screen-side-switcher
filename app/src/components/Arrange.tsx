@@ -34,8 +34,11 @@ export function Arrange({ state, backend, act, busy }: { state: AppState; backen
   }, [arr, selected, state]);
 
   const externals = arr?.placements.map((p) => p.screen) ?? [];
+  const custom = state.custom;
   const placementOf = (id: string) => arr?.placements.find((p) => p.screen === id);
-  const currentSide = selected
+  const currentSide = custom
+    ? undefined
+    : selected
     ? placementOf(selected)?.side
     : arr && arr.placements.every((p) => p.side === arr.placements[0]?.side)
       ? arr.placements[0]?.side
@@ -51,7 +54,11 @@ export function Arrange({ state, backend, act, busy }: { state: AppState; backen
       <figure className="arrange-figure">
         <Preview screens={state.screens} arrangement={arr} selected={selected} onSelect={setSelected} />
         <figcaption>
-          {focus && focusSide ? crossing(focusSide, nameOf(state, focus), anchorText(state)) : headline(state)}
+          {custom
+            ? 'The screens overlap, so they are not side by side. Pick a side to arrange them.'
+            : focus && focusSide
+              ? crossing(focusSide, nameOf(state, focus), anchorText(state))
+              : headline(state)}
         </figcaption>
       </figure>
 
@@ -107,7 +114,7 @@ export function Arrange({ state, backend, act, busy }: { state: AppState; backen
                 <button
                   key={align}
                   type="button"
-                  aria-pressed={arr.aligned && arr.align === align}
+                  aria-pressed={!custom && arr.aligned && arr.align === align}
                   disabled={busy}
                   onClick={() => act(() => backend.setAlign(align))}
                 >
@@ -115,7 +122,7 @@ export function Arrange({ state, backend, act, busy }: { state: AppState; backen
                 </button>
               ))}
             </div>
-            {!arr.aligned && <p className="hint">The screens line up in no named way. Pick one to line them up.</p>}
+            {!custom && !arr.aligned && <p className="hint">The screens line up in no named way. Pick one to line them up.</p>}
           </div>
 
           {caps?.primary && selectedScreen && (

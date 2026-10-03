@@ -4,7 +4,7 @@
 use serde::Serialize;
 
 use screen_side_core::backend::{Backend, Capabilities};
-use screen_side_core::layout::{infer, Arrangement};
+use screen_side_core::layout::{baseline, infer, Arrangement};
 use screen_side_core::model::State;
 use screen_side_core::shortcut::{plan_install, Desktop, Plan, DEFAULT_GNOME_KEYS};
 use screen_side_core::store::{matches, resolve, SavedLayout, Settings};
@@ -64,7 +64,12 @@ pub struct AppState {
     pub capabilities: Option<Capabilities>,
     pub screens: Vec<ScreenView>,
     pub arrangement: Option<Arrangement>,
+    /// Two or more screens are on but in no side-by-side layout (they
+    /// overlap). `arrangement` is then where the side buttons start from.
+    pub custom: bool,
     pub layouts: Vec<LayoutView>,
+    /// layouts.json could not be read; shown in place of the list.
+    pub layouts_error: Option<String>,
     pub active_layout: Option<String>,
     pub settings: SettingsView,
     pub shortcut: ShortcutSupport,
@@ -111,13 +116,10 @@ pub fn app_state(input: ViewInput) -> AppState {
         auto_apply: input.settings.auto_apply,
         shortcut: input.settings.shortcut.clone(),
     };
-    let mut error = input.error;
-    let layouts = match input.layouts {
-        Ok(layouts) => layouts,
-        Err(e) => {
-            error.get_or_insert(e);
-            Vec::new()
-        }
+    let error = input.error;
+    let (layouts, layouts_error) = match input.layouts {
+        Ok(layouts) => (layouts, None),
+        Err(e) => (Vec::new(), Some(e)),
     };
     let Some((backend, state)) = input.backend else {
         return AppState {
@@ -127,6 +129,8 @@ pub fn app_state(input: ViewInput) -> AppState {
             capabilities: None,
             screens: Vec::new(),
             arrangement: None,
+            custom: false,
+            layouts_error,
             layouts: layouts
                 .iter()
                 .map(|l| LayoutView {
@@ -144,12 +148,10 @@ pub fn app_state(input: ViewInput) -> AppState {
         };
     };
 
-    let arrangement = if state.enabled().count() >= 2 {
-        infer(state)
-    } else {
-        None
-    };
-    let active_layout = arrangement.as_ref().and_then(|arr| {
+    let inferred = infer(state);
+    let custom = inferred.is_none() && state.enabled().count() >= 2;
+    let arrangement = inferred.or_else(|| if custom { baseline(state).ok() } else { None });
+    let active_layout = arrangement.as_ref().filter(|_| !custom).and_then(|arr| {
         layouts
             .iter()
             .filter(|l| matches(l, state))
@@ -199,7 +201,9 @@ pub fn app_state(input: ViewInput) -> AppState {
             })
             .collect(),
         arrangement,
+        custom,
         layouts: layout_views,
+        layouts_error,
         active_layout,
         settings,
         shortcut: input.shortcut,
@@ -356,5 +360,50 @@ mod tests {
             }
             other => panic!("expected manual, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn overlapping_screens_still_get_controls() {
+        // X11 often puts a new monitor at 0,0 over the laptop: no side
+        // describes that, but the window must still offer the sides.
+        let mut file = FakeFile::sample();
+        file.screens[1].rect.x = 0;
+        file.screens[1].rect.y = 0;
+        file.screens[0].rect.x = 0;
+        file.screens[0].rect.y = 0;
+        let fake = Fake::in_memory(file);
+        let state = fake.query().unwrap();
+        let view = app_state(ViewInput {
+            platform: "linux",
+            backend: Some((&fake as &dyn Backend, &state)),
+            layouts: Ok(vec![]),
+            settings: &Settings::default(),
+            auto_start: false,
+            shortcut: ShortcutSupport::App,
+            cli_path: None,
+            error: None,
+        });
+        let json = serde_json::to_value(&view).unwrap();
+        assert_eq!(json["custom"], true);
+        assert_eq!(json["arrangement"]["placements"][0]["side"], "right");
+    }
+
+    #[test]
+    fn a_broken_layouts_file_is_its_own_message() {
+        let (fake, state) = sample();
+        let view = app_state(ViewInput {
+            platform: "linux",
+            backend: Some((&fake as &dyn Backend, &state)),
+            layouts: Err("/x/layouts.json could not be read".into()),
+            settings: &Settings::default(),
+            auto_start: false,
+            shortcut: ShortcutSupport::App,
+            cli_path: None,
+            error: None,
+        });
+        let json = serde_json::to_value(&view).unwrap();
+        assert_eq!(json["layoutsError"], "/x/layouts.json could not be read");
+        assert_eq!(json["error"], serde_json::Value::Null);
+        assert_eq!(json["custom"], false);
     }
 }

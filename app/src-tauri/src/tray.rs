@@ -145,9 +145,9 @@ fn on_menu(app: &AppHandle, event: MenuEvent) {
     };
     if let Err(e) = result {
         // The menu cannot show text, so the window does.
+        app.state::<Shared>().note(e);
         let _ = app.emit("state-changed", ());
         show_main(app);
-        eprintln!("screen-side: {e}");
     }
     refresh(app);
 }

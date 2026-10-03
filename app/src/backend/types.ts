@@ -80,7 +80,12 @@ export interface AppState {
   capabilities: Capabilities | null;
   screens: ScreenInfo[];
   arrangement: Arrangement | null;
+  /** Two or more screens are on but overlap, so no side describes them;
+   * `arrangement` is then where the side buttons start from. */
+  custom: boolean;
   layouts: LayoutInfo[];
+  /** layouts.json could not be read; shown in place of the list. */
+  layoutsError: string | null;
   activeLayout: string | null;
   settings: Settings;
   shortcut: ShortcutSupport;

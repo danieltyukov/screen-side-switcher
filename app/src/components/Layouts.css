@@ -79,3 +79,11 @@
   color: var(--muted);
   font-size: var(--text-s);
 }
+
+.layouts .problem {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-m);
+  background: var(--danger-tint);
+}

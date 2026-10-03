@@ -45,6 +45,7 @@ pub fn current(app: &AppHandle) -> AppState {
     let installed = shortcut::is_installed(&SystemRunner, shared.desktop);
     let support = view::shortcut_support(shared.desktop, installed, &shared.toggle_command());
     let hotkey_error = shared.hotkey_error.lock().unwrap().clone();
+    let notice = shared.take_notice();
     let base = |error: Option<String>| ViewInput {
         platform: view::platform(),
         backend: None,
@@ -53,7 +54,9 @@ pub fn current(app: &AppHandle) -> AppState {
         auto_start: app.autolaunch().is_enabled().unwrap_or(false),
         shortcut: support.clone(),
         cli_path: cli_path(),
-        error: error.or_else(|| hotkey_error.clone()),
+        error: error
+            .or_else(|| hotkey_error.clone())
+            .or_else(|| notice.clone()),
     };
     let Some(backend) = shared.backend.as_ref() else {
         return app_state(base(shared.detect_error.clone()));

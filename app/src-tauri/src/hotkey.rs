@@ -2,10 +2,11 @@
 //! global key grabs for applications, so there the desktop runs
 //! `screen-side-gui --toggle` instead (see the shortcut module in core).
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 use crate::commands::{toggle_now, From};
+use crate::Shared;
 
 /// Replaces whatever shortcut is registered with `keys`, or none.
 pub fn apply(app: &AppHandle, keys: Option<&str>) -> Result<(), String> {
@@ -18,7 +19,8 @@ pub fn apply(app: &AppHandle, keys: Option<&str>) -> Result<(), String> {
         .on_shortcut(keys, |app, _shortcut, event| {
             if event.state == ShortcutState::Pressed {
                 if let Err(e) = toggle_now(app, From::Quick) {
-                    eprintln!("screen-side: {e}");
+                    app.state::<Shared>().note(e);
+                    let _ = app.emit("state-changed", ());
                 }
             }
         })

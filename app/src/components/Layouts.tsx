@@ -8,7 +8,7 @@ export function Layouts({ state, backend, act, busy }: { state: AppState; backen
   const [name, setName] = useState('');
   const [auto, setAuto] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
-  const canSave = state.arrangement !== null;
+  const canSave = state.arrangement !== null && !state.layoutsError;
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
@@ -22,7 +22,9 @@ export function Layouts({ state, backend, act, busy }: { state: AppState; backen
 
   return (
     <div className="layouts">
-      {state.layouts.length === 0 ? (
+      {state.layoutsError ? (
+        <p className="problem">{state.layoutsError}</p>
+      ) : state.layouts.length === 0 ? (
         <p className="empty">
           No layouts yet. Arrange the screens the way this desk needs them, then save the arrangement here to get it
           back next time.
@@ -93,7 +95,7 @@ export function Layouts({ state, backend, act, busy }: { state: AppState; backen
 
       <form className="save" onSubmit={save}>
         <h2>Save current layout</h2>
-        {!canSave && <p className="hint">Connect a second screen to save a layout.</p>}
+        {!canSave && !state.layoutsError && <p className="hint">Connect a second screen to save a layout.</p>}
         <label className="field">
           <span>Name</span>
           <input

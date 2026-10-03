@@ -126,3 +126,22 @@ describe('mock backend', () => {
     expect(state.screens).toHaveLength(1);
   });
 });
+
+describe('mock backend, unusual states', () => {
+  it('reports overlapping screens as custom with somewhere to start from', async () => {
+    const mock = createMock({ screens: 2, custom: true });
+    let state = await mock.getState();
+    expect(state.custom).toBe(true);
+    expect(state.arrangement?.placements).toEqual([{ screen: 'HDMI-1', side: 'right' }]);
+    expect(state.screens.every((s) => s.x === 0 && s.y === 0)).toBe(true);
+    state = await mock.moveScreen(null, 'left');
+    expect(state.custom).toBe(false);
+  });
+
+  it('can carry a warning and a broken layouts file next to working screens', async () => {
+    const state = await createMock({ screens: 2, warning: 'Ctrl+Alt+K could not be registered', layoutsError: '/x/layouts.json could not be read' }).getState();
+    expect(state.screens).toHaveLength(2);
+    expect(state.error).toBe('Ctrl+Alt+K could not be registered');
+    expect(state.layoutsError).toBe('/x/layouts.json could not be read');
+  });
+});

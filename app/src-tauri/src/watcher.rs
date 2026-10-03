@@ -4,7 +4,7 @@
 use std::time::Duration;
 
 use screen_side_core::store::Store;
-use screen_side_core::watch::Watcher;
+use screen_side_core::watch::{Event, Watcher};
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{tray, Shared};
@@ -24,6 +24,11 @@ pub fn start(app: AppHandle) {
             loop {
                 let auto_apply = store.settings().map(|s| s.auto_apply).unwrap_or(true);
                 let events = watcher.tick(backend.as_ref(), &store, auto_apply);
+                for event in &events {
+                    if let Event::Failed { message } = event {
+                        app.state::<Shared>().note(message.clone());
+                    }
+                }
                 if !events.is_empty() {
                     let _ = app.emit("state-changed", ());
                     tray::refresh(&app);

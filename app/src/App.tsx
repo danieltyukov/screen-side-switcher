@@ -18,6 +18,8 @@ export default function App({ backend }: { backend: Backend }) {
   const [state, setState] = useState<AppState | null>(null);
   const [tab, setTab] = useState<Tab>('arrange');
   const [problem, setProblem] = useState<string | null>(null);
+  // A problem the backend keeps reporting stays put away once dismissed.
+  const [dismissed, setDismissed] = useState<string | null>(null);
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -65,7 +67,18 @@ export default function App({ backend }: { backend: Backend }) {
       <header className="app-head">
         <Tabs current={tab} onChange={changeTab} />
       </header>
-      {problem && <Banner message={problem} onDismiss={() => setProblem(null)} />}
+      {(() => {
+        const standing =
+          state?.error && state.screens.length > 0 && state.error !== dismissed ? state.error : null;
+        const shown = problem ?? standing;
+        if (!shown) return null;
+        return (
+          <Banner
+            message={shown}
+            onDismiss={() => (problem ? setProblem(null) : setDismissed(shown))}
+          />
+        );
+      })()}
       <main role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} tabIndex={-1} className="panel">
         {!state ? (
           <p className="loading">Reading the screens.</p>

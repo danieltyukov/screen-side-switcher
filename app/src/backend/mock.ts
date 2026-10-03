@@ -27,7 +27,13 @@ export type MockKind = 'gnome' | 'kde' | 'wlroots' | 'x11' | 'windows' | 'macos'
 export interface MockOptions {
   screens?: 1 | 2 | 3;
   backend?: MockKind;
+  /** No backend at all: this message and no screens. */
   error?: string;
+  /** Screens that overlap at the origin, as X11 often leaves a new monitor. */
+  custom?: boolean;
+  /** A problem shown next to working screens. */
+  warning?: string;
+  layoutsError?: string;
 }
 
 export interface MockBackend extends Backend {
@@ -177,6 +183,10 @@ export function createMock(options: MockOptions = {}): MockBackend {
           primary: 'eDP-1',
         };
   let layouts: SavedLayout[] = [];
+  let custom = options.custom === true && count >= 2;
+  if (custom && arrangement) {
+    arrangement = { ...arrangement, placements: arrangement.placements.map((p) => ({ ...p, side: 'right' })), align: 'center' };
+  }
   let settings: Settings = {
     background: platform !== 'linux',
     autoStart: false,
@@ -207,7 +217,9 @@ export function createMock(options: MockOptions = {}): MockBackend {
         capabilities: null,
         screens: [],
         arrangement: null,
+        custom: false,
         layouts: [],
+        layoutsError: null,
         activeLayout: null,
         settings: { ...settings },
         shortcut: shortcut(),
@@ -215,9 +227,10 @@ export function createMock(options: MockOptions = {}): MockBackend {
         error: options.error,
       };
     }
-    const positions = arrangement
-      ? compute(screens, arrangement, caps.origin)
-      : new Map(screens.map((s) => [s.id, { x: 0, y: 0, width: s.width, height: s.height }]));
+    const positions =
+      arrangement && !custom
+        ? compute(screens, arrangement, caps.origin)
+        : new Map(screens.map((s) => [s.id, { x: 0, y: 0, width: s.width, height: s.height }]));
     const primary = caps.primary ? (arrangement?.primary ?? screens[0]?.id) : null;
     const list: ScreenInfo[] = screens
       .map((s) => {
@@ -249,7 +262,7 @@ export function createMock(options: MockOptions = {}): MockBackend {
         summary: summary(l.arrangement, l.screens.split(',').length),
       }));
     const active =
-      arrangement === null
+      arrangement === null || custom
         ? null
         : (layouts.find((l) => l.screens === here && sameArrangement(l.arrangement, arrangement!))?.name ?? null);
     return {
@@ -259,12 +272,14 @@ export function createMock(options: MockOptions = {}): MockBackend {
       capabilities: { ...caps },
       screens: list,
       arrangement: arrangement && structuredClone(arrangement),
-      layouts: infos,
+      custom,
+      layouts: options.layoutsError ? [] : infos,
+      layoutsError: options.layoutsError ?? null,
       activeLayout: active,
       settings: { ...settings },
       shortcut: shortcut(),
       cliPath: platform === 'windows' ? null : '/usr/bin/screen-side',
-      error: null,
+      error: options.warning ?? null,
     };
   };
 
@@ -272,6 +287,7 @@ export function createMock(options: MockOptions = {}): MockBackend {
   const commit = (next: Arrangement): AppState => {
     compute(screens, next, caps.origin);
     arrangement = next;
+    custom = false;
     return snapshot();
   };
 
