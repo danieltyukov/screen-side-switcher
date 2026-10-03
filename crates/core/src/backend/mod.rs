@@ -81,6 +81,18 @@ pub fn apply_checked(
     }
 }
 
+/// Computes the layout for `arr` with this backend's origin rule and applies it.
+pub fn arrange(
+    backend: &dyn Backend,
+    state: &State,
+    arr: &crate::layout::Arrangement,
+    mode: ApplyMode,
+) -> Result<(Layout, Applied), Error> {
+    let layout = crate::layout::compute(state, arr, backend.capabilities().origin)?;
+    let applied = apply_checked(backend, &layout, mode)?;
+    Ok((layout, applied))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -169,5 +181,17 @@ mod tests {
             Ok(Applied::Done)
         ));
         assert_eq!(r.calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn arrange_computes_with_the_backends_origin_and_applies() {
+        use crate::layout::{baseline, Side};
+        let fake = fake::Fake::in_memory(fake::FakeFile::sample());
+        let state = fake.query().unwrap();
+        let arr = baseline(&state).unwrap().move_all(Side::Right);
+        let (layout, applied) = arrange(&fake, &state, &arr, ApplyMode::Persistent).unwrap();
+        assert_eq!(applied, Applied::Done);
+        assert_eq!(layout.position("HDMI-1").unwrap().x, 1280);
+        assert_eq!(fake.query().unwrap().screen("HDMI-1").unwrap().rect.x, 1280);
     }
 }

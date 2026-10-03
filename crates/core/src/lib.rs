@@ -10,5 +10,6 @@ pub mod layout;
 pub mod model;
 pub mod run;
 pub mod store;
+pub mod watch;
 
 pub use error::Error;

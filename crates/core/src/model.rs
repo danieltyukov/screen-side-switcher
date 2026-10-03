@@ -154,6 +154,16 @@ impl Layout {
         self.positions.iter().find(|p| p.id == id)
     }
 
+    /// Same positions and primary, in any order.
+    pub fn same_as(&self, other: &Layout) -> bool {
+        let sorted = |l: &Layout| {
+            let mut p = l.positions.clone();
+            p.sort_by(|a, b| a.id.cmp(&b.id));
+            p
+        };
+        self.primary == other.primary && sorted(self) == sorted(other)
+    }
+
     /// The layout already in force. Used to check an apply path without
     /// moving anything.
     pub fn from_state(state: &State) -> Layout {
@@ -263,5 +273,31 @@ mod tests {
                 y: 0
             })
         );
+    }
+
+    #[test]
+    fn same_as_ignores_order_but_not_primary() {
+        let p = |id: &str, x: i32| Position {
+            id: id.into(),
+            x,
+            y: 0,
+        };
+        let a = Layout {
+            positions: vec![p("A", 0), p("B", 10)],
+            primary: "A".into(),
+        };
+        let b = Layout {
+            positions: vec![p("B", 10), p("A", 0)],
+            primary: "A".into(),
+        };
+        assert!(a.same_as(&b));
+        assert!(!a.same_as(&Layout {
+            primary: "B".into(),
+            ..b.clone()
+        }));
+        assert!(!a.same_as(&Layout {
+            positions: vec![p("B", 11), p("A", 0)],
+            ..b
+        }));
     }
 }
