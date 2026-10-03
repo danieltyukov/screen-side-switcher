@@ -115,8 +115,26 @@ pub fn run() {
     }
 }
 
+/// A 1.0 install in ~/.local shadows this app on PATH and in the menu; it
+/// goes the first time 2.0 runs.
+#[cfg(target_os = "linux")]
+fn remove_v1() {
+    if let Some(home) = std::env::var_os("HOME") {
+        for path in screen_side_core::legacy::cleanup_v1(std::path::Path::new(&home)) {
+            eprintln!(
+                "screen-side: removed Screen Side 1.0 file {}",
+                path.display()
+            );
+        }
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn remove_v1() {}
+
 fn start(background_launch: bool) {
     apply_webkit_workarounds();
+    remove_v1();
     let shared = Shared::new();
     let settings = shared.store.settings().unwrap_or_default();
 

@@ -13,6 +13,7 @@ StartupNotify=true
 # GTK names the window after the binary, so the dock pairs it with this
 # launcher only when the class is spelled out.
 StartupWMClass=screen-side-gui
-# WebKitGTK on NVIDIA shows a blank window without this. lib.rs sets it too,
-# for launches that do not go through this file.
-Exec=env __NV_DISABLE_EXPLICIT_SYNC=1 {{exec}} {{exec_arg}}
+# WebKitGTK on NVIDIA shows a blank window without the variable; lib.rs sets
+# it too, for launches that do not go through this file. The absolute path
+# keeps a Screen Side 1.0 launcher in ~/.local/bin from being started instead.
+Exec=env __NV_DISABLE_EXPLICIT_SYNC=1 /usr/bin/{{exec}} {{exec_arg}}

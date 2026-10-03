@@ -9,6 +9,7 @@ pub mod doctor;
 pub mod edid;
 pub mod error;
 pub mod layout;
+pub mod legacy;
 pub mod model;
 pub mod run;
 pub mod shortcut;
