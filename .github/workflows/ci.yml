@@ -141,12 +141,22 @@ jobs:
           Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip
           $hash = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLower()
           "$hash  screen-side-windows-x64.zip" | Set-Content (Join-Path $release 'SHA256SUMS')
+          # A user PATH entry with a variable in it must survive the install
+          # unexpanded, with the value still an expandable string.
+          $before = (Get-Item 'HKCU:\Environment').GetValue('Path', '', 'DoNotExpandEnvironmentNames')
+          $marker = '%USERPROFILE%\screen-side-ci-bin'
+          Set-ItemProperty 'HKCU:\Environment' -Name Path -Type ExpandString -Value ($(if ($before) { "$before;" } else { '' }) + $marker)
           $env:SCREEN_SIDE_ARCHIVE = $zip
           $env:SCREEN_SIDE_INSTALL_DIR = Join-Path $env:RUNNER_TEMP 'installed'
           ./site/public/install.ps1
           $version = & (Join-Path $env:SCREEN_SIDE_INSTALL_DIR 'screen-side.exe') --version
           if ($version -notmatch ' 2\.') { throw "unexpected version: $version" }
-          Write-Host "ok: $version"
+          $key = Get-Item 'HKCU:\Environment'
+          $after = $key.GetValue('Path', '', 'DoNotExpandEnvironmentNames')
+          if (-not $after.Contains($marker)) { throw "the installer expanded or dropped $marker: $after" }
+          if (-not $after.Contains($env:SCREEN_SIDE_INSTALL_DIR)) { throw "the install folder is not on the user PATH: $after" }
+          if ($key.GetValueKind('Path') -ne 'ExpandString') { throw "the user PATH is no longer an expandable string" }
+          Write-Host "ok: $version, user PATH intact"
 
   shell:
     name: App shell

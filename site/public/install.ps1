@@ -68,9 +68,18 @@ try {
     $Installed = & (Join-Path $Dest 'screen-side.exe') --version
     Write-Host "Installed $Installed to $Dest"
 
-    $UserPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    # The user PATH is read and written raw: entries such as %USERPROFILE%\bin
+    # stay unexpanded and the value stays an expandable string, which
+    # [Environment]::SetEnvironmentVariable would not keep.
+    $EnvKey = Get-Item -Path 'HKCU:\Environment'
+    $UserPath = $EnvKey.GetValue('Path', '', 'DoNotExpandEnvironmentNames')
     if (-not (($UserPath -split ';') -contains $Dest)) {
-        [Environment]::SetEnvironmentVariable('Path', ($(if ($UserPath) { "$UserPath;" } else { '' }) + $Dest), 'User')
+        $NewPath = if ($UserPath) { "$($UserPath.TrimEnd(';'));$Dest" } else { $Dest }
+        Set-ItemProperty -Path 'HKCU:\Environment' -Name 'Path' -Value $NewPath -Type ExpandString
+        # Setting and clearing a variable through .NET tells Explorer and new
+        # terminals that the environment changed.
+        [Environment]::SetEnvironmentVariable('SCREEN_SIDE_INSTALL', '1', 'User')
+        [Environment]::SetEnvironmentVariable('SCREEN_SIDE_INSTALL', $null, 'User')
         Write-Host "Added $Dest to your PATH. Open a new terminal to use screen-side."
     }
     Write-Host 'Try: screen-side status'
