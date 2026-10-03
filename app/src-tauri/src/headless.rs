@@ -2,7 +2,7 @@
 //! Desktop shortcuts run these, so they must be quick and quiet. A running
 //! window notices the change on its next watcher tick.
 
-use screen_side_core::backend::{arrange, detect, ApplyMode};
+use screen_side_core::backend::{arrange, detect, unattended};
 use screen_side_core::layout::{baseline, Arrangement};
 use screen_side_core::model::State;
 use screen_side_core::store::{resolve, Store};
@@ -12,7 +12,10 @@ fn change(f: impl FnOnce(&State) -> Result<Arrangement, Error>) -> i32 {
     let result = detect().and_then(|(backend, _)| {
         let state = backend.query()?;
         let arr = f(&state)?;
-        arrange(backend.as_ref(), &state, &arr, ApplyMode::Persistent).map(|_| ())
+        // A shortcut has nobody at a prompt, so where saving asks to confirm
+        // (GNOME) the change is temporary rather than reverted.
+        let mode = unattended(backend.capabilities());
+        arrange(backend.as_ref(), &state, &arr, mode).map(|_| ())
     });
     match result {
         Ok(()) => 0,

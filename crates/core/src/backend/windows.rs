@@ -126,6 +126,7 @@ impl Backend for Windows {
             temporary: true,
             verify: true,
             remembers: true,
+            confirms: false,
             origin: Origin::Primary,
         }
     }

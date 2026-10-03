@@ -31,6 +31,12 @@ pub struct MutterMonitor {
     pub display_name: String,
     pub builtin: bool,
     pub modes: Vec<MutterMode>,
+    /// `is-underscanning`, present only where underscanning is supported.
+    #[serde(default)]
+    pub underscanning: Option<bool>,
+    /// `color-mode` (HDR), reported by newer Mutter.
+    #[serde(default)]
+    pub color_mode: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -52,6 +58,16 @@ pub struct MutterState {
     pub logical: Vec<MutterLogical>,
 }
 
+/// One monitor in an ApplyMonitorsConfig request. Mutter resets any
+/// monitor property that is not passed back, so the ones it reported are.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ApplyMonitor {
+    pub connector: String,
+    pub mode: String,
+    pub underscanning: Option<bool>,
+    pub color_mode: Option<u32>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApplyLogical {
     pub x: i32,
@@ -59,8 +75,7 @@ pub struct ApplyLogical {
     pub scale: f64,
     pub transform: u32,
     pub primary: bool,
-    /// (connector, mode id)
-    pub monitors: Vec<(String, String)>,
+    pub monitors: Vec<ApplyMonitor>,
 }
 
 impl MutterState {
@@ -167,7 +182,13 @@ impl MutterState {
                         let mode = self
                             .mode(c)
                             .ok_or_else(|| Error::System(format!("{c} reports no usable mode.")))?;
-                        Ok((c.clone(), mode.id.clone()))
+                        let monitor = self.monitor(c);
+                        Ok(ApplyMonitor {
+                            connector: c.clone(),
+                            mode: mode.id.clone(),
+                            underscanning: monitor.and_then(|m| m.underscanning),
+                            color_mode: monitor.and_then(|m| m.color_mode),
+                        })
                     })
                     .collect::<Result<_, Error>>()?;
                 Ok(ApplyLogical {
@@ -277,7 +298,12 @@ mod tests {
                     scale: 2.0,
                     transform: 0,
                     primary: true,
-                    monitors: vec![("eDP-1".into(), "2560x1600@60.000".into())],
+                    monitors: vec![ApplyMonitor {
+                        connector: "eDP-1".into(),
+                        mode: "2560x1600@60.000".into(),
+                        underscanning: None,
+                        color_mode: None,
+                    }],
                 },
                 ApplyLogical {
                     x: 1280,
@@ -285,7 +311,14 @@ mod tests {
                     scale: 1.0,
                     transform: 0,
                     primary: false,
-                    monitors: vec![("HDMI-1".into(), "2560x1440@59.951".into())],
+                    // Mutter resets what is not passed back, so a move must
+                    // not switch off underscanning or HDR.
+                    monitors: vec![ApplyMonitor {
+                        connector: "HDMI-1".into(),
+                        mode: "2560x1440@59.951".into(),
+                        underscanning: Some(true),
+                        color_mode: Some(1),
+                    }],
                 },
             ]
         );
@@ -297,10 +330,14 @@ mod tests {
             .apply_config(&layout("eDP-1", &[("eDP-1", 0, 0)]))
             .unwrap();
         assert_eq!(config.len(), 1);
-        let connectors: Vec<&str> = config[0].monitors.iter().map(|(c, _)| c.as_str()).collect();
+        let connectors: Vec<&str> = config[0]
+            .monitors
+            .iter()
+            .map(|m| m.connector.as_str())
+            .collect();
         assert_eq!(connectors, ["eDP-1", "HDMI-1"]);
         // Each mirrored monitor keeps its own current mode.
-        assert_eq!(config[0].monitors[1].1, "2560x1440@59.951");
+        assert_eq!(config[0].monitors[1].mode, "2560x1440@59.951");
     }
 
     #[test]

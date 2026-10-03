@@ -167,11 +167,12 @@ impl fmt::Display for Report {
         if let Some(c) = &self.capabilities {
             writeln!(
                 f,
-                "Capabilities: primary {}, temporary {}, check without applying {}, remembers layouts {}, origin {}",
+                "Capabilities: primary {}, temporary {}, check without applying {}, remembers layouts {}, asks to keep changes {}, origin {}",
                 yes(c.primary),
                 yes(c.temporary),
                 yes(c.verify),
                 yes(c.remembers),
+                yes(c.confirms),
                 match c.origin {
                     Origin::TopLeft => "top-left",
                     Origin::Primary => "primary screen",

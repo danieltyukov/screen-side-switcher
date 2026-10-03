@@ -42,7 +42,9 @@
           "current": false,
           "preferred": false
         }
-      ]
+      ],
+      "underscanning": true,
+      "color_mode": 1
     }
   ],
   "logical": [

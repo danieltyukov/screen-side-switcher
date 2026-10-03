@@ -160,6 +160,7 @@ impl Backend for Wlroots {
             temporary: false,
             verify: true,
             remembers: false,
+            confirms: false,
             origin: Origin::TopLeft,
         }
     }

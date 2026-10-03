@@ -4,7 +4,7 @@
 
 use std::fmt::Display;
 
-use screen_side_core::backend::{arrange, ApplyMode, SystemProbe};
+use screen_side_core::backend::{arrange, unattended, ApplyMode, SystemProbe};
 use screen_side_core::doctor;
 use screen_side_core::layout::{baseline, Align, Arrangement, Side};
 use screen_side_core::model::State as Screens;
@@ -67,10 +67,22 @@ pub fn current(app: &AppHandle) -> AppState {
     }
 }
 
+/// Who asked for a change, which decides how it is applied.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum From {
+    /// The window: someone is there to answer a "keep these settings?"
+    /// prompt, so the change is saved.
+    Window,
+    /// The tray or a hotkey: no prompt may be left unanswered, so where
+    /// saving asks for one (GNOME) the change is temporary.
+    Quick,
+}
+
 /// Works out an arrangement from the screens in force and applies it.
 /// Shared by the window, the tray and the hotkey.
 pub fn change(
     app: &AppHandle,
+    from: From,
     f: impl FnOnce(&Screens) -> Result<Arrangement, Error>,
 ) -> Result<(), String> {
     let shared = app.state::<Shared>();
@@ -80,14 +92,18 @@ pub fn change(
         .ok_or_else(|| shared.detect_error.clone().unwrap_or_default())?;
     let state = backend.query().map_err(text)?;
     let arr = f(&state).map_err(text)?;
-    arrange(backend.as_ref(), &state, &arr, ApplyMode::Persistent).map_err(text)?;
+    let mode = match from {
+        From::Window => ApplyMode::Persistent,
+        From::Quick => unattended(backend.capabilities()),
+    };
+    arrange(backend.as_ref(), &state, &arr, mode).map_err(text)?;
     tray::refresh(app);
     let _ = app.emit("state-changed", ());
     Ok(())
 }
 
-pub fn toggle_now(app: &AppHandle) -> Result<(), String> {
-    change(app, |state| Ok(baseline(state)?.toggled()))
+pub fn toggle_now(app: &AppHandle, from: From) -> Result<(), String> {
+    change(app, from, |state| Ok(baseline(state)?.toggled()))
 }
 
 #[tauri::command]
@@ -97,7 +113,7 @@ pub fn get_state(app: AppHandle) -> AppState {
 
 #[tauri::command]
 pub fn move_screen(app: AppHandle, screen: Option<String>, side: Side) -> Result<AppState, String> {
-    change(&app, |state| {
+    change(&app, From::Window, |state| {
         let arr = baseline(state)?;
         Ok(match screen {
             Some(id) => arr.move_screen(&id, side)?,
@@ -109,13 +125,15 @@ pub fn move_screen(app: AppHandle, screen: Option<String>, side: Side) -> Result
 
 #[tauri::command]
 pub fn toggle(app: AppHandle) -> Result<AppState, String> {
-    toggle_now(&app)?;
+    toggle_now(&app, From::Window)?;
     Ok(current(&app))
 }
 
 #[tauri::command]
 pub fn set_align(app: AppHandle, align: Align) -> Result<AppState, String> {
-    change(&app, |state| Ok(baseline(state)?.with_align(align)))?;
+    change(&app, From::Window, |state| {
+        Ok(baseline(state)?.with_align(align))
+    })?;
     Ok(current(&app))
 }
 
@@ -132,7 +150,9 @@ pub fn set_primary(
     {
         return Err("This desktop has no primary screen to set.".into());
     }
-    change(&app, |state| Ok(baseline(state)?.with_primary(&screen)))?;
+    change(&app, From::Window, |state| {
+        Ok(baseline(state)?.with_primary(&screen))
+    })?;
     Ok(current(&app))
 }
 
@@ -164,7 +184,7 @@ pub fn apply_layout(
     name: String,
 ) -> Result<AppState, String> {
     let saved = shared.store.find(&name).map_err(text)?;
-    change(&app, |state| resolve(&saved, state))?;
+    change(&app, From::Window, |state| resolve(&saved, state))?;
     Ok(current(&app))
 }
 

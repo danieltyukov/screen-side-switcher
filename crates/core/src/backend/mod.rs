@@ -47,6 +47,21 @@ pub struct Capabilities {
     /// The system restores each set of screens' layout by itself.
     pub remembers: bool,
     pub origin: Origin,
+    /// A saved change asks the person on screen to keep it and reverts
+    /// without an answer (GNOME's "Keep these display settings?").
+    #[serde(default)]
+    pub confirms: bool,
+}
+
+/// The mode for a change nobody is watching: the watcher, the tray, a
+/// hotkey. Where saving asks for confirmation, the change is temporary
+/// instead, because an unanswered prompt would undo it.
+pub fn unattended(caps: Capabilities) -> ApplyMode {
+    if caps.confirms {
+        ApplyMode::Temporary
+    } else {
+        ApplyMode::Persistent
+    }
 }
 
 pub trait Backend: Send + Sync {
@@ -142,6 +157,7 @@ mod tests {
                 verify,
                 remembers,
                 origin: Origin::TopLeft,
+                confirms: false,
             },
             calls: AtomicUsize::new(0),
         }
@@ -205,5 +221,13 @@ mod tests {
         assert_eq!(applied, Applied::Done);
         assert_eq!(layout.position("HDMI-1").unwrap().x, 1280);
         assert_eq!(fake.query().unwrap().screen("HDMI-1").unwrap().rect.x, 1280);
+    }
+
+    #[test]
+    fn unattended_changes_avoid_confirmation_prompts() {
+        let mut caps = recorder(true, true, true).caps;
+        assert_eq!(unattended(caps), ApplyMode::Persistent);
+        caps.confirms = true;
+        assert_eq!(unattended(caps), ApplyMode::Temporary);
     }
 }

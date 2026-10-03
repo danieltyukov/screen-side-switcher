@@ -78,6 +78,7 @@ impl Backend for Macos {
             temporary: true,
             verify: false,
             remembers: true,
+            confirms: false,
             origin: Origin::Primary,
         }
     }

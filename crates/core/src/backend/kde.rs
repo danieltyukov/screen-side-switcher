@@ -187,6 +187,7 @@ impl Backend for Kde {
             temporary: false,
             verify: false,
             remembers: true,
+            confirms: false,
             origin: Origin::TopLeft,
         }
     }

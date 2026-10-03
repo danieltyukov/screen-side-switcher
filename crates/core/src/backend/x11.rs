@@ -151,6 +151,7 @@ impl Backend for X11 {
             temporary: false,
             verify: false,
             remembers: false,
+            confirms: false,
             origin: Origin::TopLeft,
         }
     }

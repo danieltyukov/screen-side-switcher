@@ -9,7 +9,7 @@ use tauri::menu::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, 
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager, Wry};
 
-use crate::commands::{change, toggle_now};
+use crate::commands::{change, toggle_now, From};
 use crate::{show_main, Shared};
 
 const ID: &str = "main";
@@ -121,17 +121,21 @@ fn on_menu(app: &AppHandle, event: MenuEvent) {
             app.exit(0);
             Ok(())
         }
-        "toggle" => toggle_now(app),
+        "toggle" => toggle_now(app, From::Quick),
         _ => {
             if let Some(side) = id
                 .strip_prefix("side:")
                 .and_then(|s| s.parse::<Side>().ok())
             {
-                change(app, |state| Ok(baseline(state)?.move_all(side)))
+                change(
+                    app,
+                    From::Quick,
+                    |state| Ok(baseline(state)?.move_all(side)),
+                )
             } else if let Some(name) = id.strip_prefix("layout:") {
                 let shared = app.state::<Shared>();
                 match shared.store.find(name) {
-                    Ok(saved) => change(app, |state| resolve(&saved, state)),
+                    Ok(saved) => change(app, From::Quick, |state| resolve(&saved, state)),
                     Err(e) => Err(e.to_string()),
                 }
             } else {

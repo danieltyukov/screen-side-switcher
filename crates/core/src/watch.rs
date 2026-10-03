@@ -7,7 +7,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use crate::backend::{arrange, ApplyMode, Backend};
+use crate::backend::{arrange, unattended, Backend};
 use crate::layout::compute;
 use crate::model::{Layout, State};
 use crate::store::{fingerprint, matches, resolve, Store};
@@ -102,7 +102,7 @@ impl Watcher {
             if target.same_as(&Layout::from_state(&state)) {
                 return Ok(false);
             }
-            arrange(backend, &state, &arr, ApplyMode::Persistent).map(|_| true)
+            arrange(backend, &state, &arr, unattended(backend.capabilities())).map(|_| true)
         });
         match result {
             Ok(false) => None,
@@ -314,5 +314,28 @@ mod tests {
             matches!(&events[1], Event::Failed { message } if message.contains("layouts.json")),
             "{events:?}"
         );
+    }
+
+    #[test]
+    fn where_saving_needs_confirmation_auto_apply_is_temporary() {
+        // GNOME asks on screen to keep a saved change and reverts it after
+        // 20 seconds without an answer; nobody is there when the watcher acts.
+        let (_dir, store) = store();
+        save_office(&store, true);
+        let mut file = FakeFile::sample();
+        file.capabilities.confirms = true;
+        let fake = Fake::in_memory(file);
+        let events = watcher().tick(&fake, &store, true);
+        assert_eq!(events[1], applied("office"));
+        assert_eq!(fake.load().unwrap().last_apply, Some(ApplyMode::Temporary));
+    }
+
+    #[test]
+    fn elsewhere_auto_apply_is_saved() {
+        let (_dir, store) = store();
+        save_office(&store, true);
+        let fake = Fake::in_memory(FakeFile::sample());
+        watcher().tick(&fake, &store, true);
+        assert_eq!(fake.load().unwrap().last_apply, Some(ApplyMode::Persistent));
     }
 }

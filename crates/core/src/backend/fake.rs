@@ -28,6 +28,7 @@ impl FakeFile {
                 temporary: true,
                 verify: true,
                 remembers: true,
+                confirms: false,
                 origin: Origin::TopLeft,
             },
             screens: vec![

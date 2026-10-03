@@ -120,6 +120,8 @@ impl Gnome {
                         builtin: flag(&mprops, "is-builtin")
                             .unwrap_or_else(|| builtin_connector(&connector)),
                         display_name: text(&mprops, "display-name").unwrap_or_default(),
+                        underscanning: flag(&mprops, "is-underscanning"),
+                        color_mode: mprops.get("color-mode").and_then(|v| u32::try_from(v).ok()),
                         modes: modes
                             .into_iter()
                             .map(
@@ -167,6 +169,7 @@ impl Backend for Gnome {
             temporary: true,
             verify: true,
             remembers: true,
+            confirms: true,
             origin: Origin::TopLeft,
         }
     }
@@ -189,7 +192,19 @@ impl Backend for Gnome {
                 let monitors = l
                     .monitors
                     .into_iter()
-                    .map(|(c, m)| (c, m, HashMap::new()))
+                    .map(|m| {
+                        let mut props: HashMap<&str, Value> = HashMap::new();
+                        if let Some(on) = m.underscanning {
+                            // GNOME 46 and 47 read the first name, newer
+                            // Mutter the second; each ignores the other.
+                            props.insert("enable_underscanning", Value::from(on));
+                            props.insert("underscanning", Value::from(on));
+                        }
+                        if let Some(mode) = m.color_mode {
+                            props.insert("color-mode", Value::from(mode));
+                        }
+                        (m.connector, m.mode, props)
+                    })
                     .collect();
                 (l.x, l.y, l.scale, l.transform, l.primary, monitors)
             })
