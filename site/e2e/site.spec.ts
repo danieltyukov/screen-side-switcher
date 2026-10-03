@@ -61,7 +61,7 @@ test('the theme toggle switches and remembers', async ({ page }) => {
 });
 
 test('the installers and images are served', async ({ request, page }) => {
-  for (const path of ['og.png', 'favicon.svg']) {
+  for (const path of ['install.sh', 'install.ps1', 'og.png', 'favicon.svg']) {
     expect((await request.get(path)).status(), path).toBe(200);
   }
   await page.goto('/');
