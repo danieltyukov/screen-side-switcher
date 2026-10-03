@@ -2,12 +2,15 @@
 //! own coordinate space and applies a [`Layout`]; everything in between is
 //! shared.
 
+pub mod ccd;
 pub mod detect;
 pub mod fake;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod gnome;
 pub mod kde;
 pub mod mutter;
+#[cfg(windows)]
+pub mod windows;
 pub mod wlroots;
 pub mod x11;
 

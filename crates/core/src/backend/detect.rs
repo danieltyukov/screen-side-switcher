@@ -190,6 +190,8 @@ pub fn create(choice: &Choice) -> Result<Box<dyn Backend>, Error> {
         Kind::X11 => Ok(Box::new(super::x11::X11::new(Box::new(
             crate::run::SystemRunner,
         )))),
+        #[cfg(windows)]
+        Kind::Windows => Ok(Box::new(super::windows::Windows)),
         #[allow(unreachable_patterns)]
         other => Err(Error::Unsupported(format!(
             "The {} backend is not available on this operating system.",
