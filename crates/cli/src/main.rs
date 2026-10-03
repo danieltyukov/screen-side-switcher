@@ -114,6 +114,8 @@ enum Command {
         #[command(subcommand)]
         action: ShortcutAction,
     },
+    /// Print what Screen Side sees, for bug reports. Serial numbers are left out.
+    Doctor,
     /// Keep running and put saved layouts back when their screens are
     /// connected (layouts saved with --auto).
     Watch {
@@ -203,6 +205,23 @@ fn run(cli: Cli) -> Result<(), Error> {
             return Ok(());
         }
         Command::Shortcut { action } => return run_shortcut(action),
+        Command::Doctor => {
+            let store = Store::open().ok();
+            let report = screen_side_core::doctor::report(
+                &SystemProbe,
+                env!("CARGO_PKG_VERSION"),
+                store.as_ref(),
+            );
+            if cli.json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&report).expect("serialisable")
+                );
+            } else {
+                print!("{report}");
+            }
+            return Ok(());
+        }
         Command::Watch { interval } if *interval < 0.5 || !interval.is_finite() => {
             return Err(Error::Usage(
                 "--interval must be at least 0.5 seconds.".into(),
@@ -274,7 +293,7 @@ fn run(cli: Cli) -> Result<(), Error> {
             );
             Ok(())
         }
-        Command::Layouts | Command::Forget { .. } | Command::Shortcut { .. } => {
+        Command::Layouts | Command::Forget { .. } | Command::Shortcut { .. } | Command::Doctor => {
             unreachable!("handled above")
         }
     }

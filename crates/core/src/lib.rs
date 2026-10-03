@@ -5,6 +5,7 @@
 //! [`layout::Arrangement`], compute a [`model::Layout`] and hand it back.
 
 pub mod backend;
+pub mod doctor;
 pub mod edid;
 pub mod error;
 pub mod layout;

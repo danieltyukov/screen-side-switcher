@@ -374,3 +374,31 @@ fn shortcut_on_x11_is_left_to_the_app() {
         .success()
         .stdout(predicate::str::contains("app registers the shortcut"));
 }
+
+#[test]
+fn doctor_text_and_json() {
+    let env = sample();
+    env.cmd().arg("doctor").assert().success().stdout(
+        predicate::str::contains("Screen Side 2.0.0")
+            .and(predicate::str::contains("Backend: fake"))
+            .and(predicate::str::contains("FAKE0001").not()),
+    );
+    let out = env.cmd().args(["doctor", "--json"]).output().unwrap();
+    assert!(out.status.success());
+    let text = stdout(&out);
+    let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(v["schema"], 1);
+    assert_eq!(v["backend"], "fake");
+    assert!(!text.contains("FAKE0001"));
+}
+
+#[test]
+fn doctor_succeeds_without_a_backend() {
+    let env = sample();
+    env.cmd()
+        .env("SCREEN_SIDE_BACKEND", "nope")
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No backend:"));
+}
