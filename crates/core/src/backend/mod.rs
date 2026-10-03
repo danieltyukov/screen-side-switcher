@@ -8,6 +8,7 @@ pub mod fake;
 pub mod gnome;
 pub mod kde;
 pub mod mutter;
+pub mod wlroots;
 
 use serde::{Deserialize, Serialize};
 
