@@ -225,30 +225,33 @@ impl Store {
         &self.dir
     }
 
-    fn read<T: for<'de> Deserialize<'de>>(
-        &self,
-        file: &str,
-        version: impl Fn(&T) -> u32,
-    ) -> Result<Option<T>, Error> {
+    /// Reads a versioned file. The version is checked before the shape, so
+    /// a file from a newer Screen Side is called newer rather than corrupt.
+    fn read<T: for<'de> Deserialize<'de>>(&self, file: &str) -> Result<Option<T>, Error> {
         let path = self.dir.join(file);
         let text = match std::fs::read_to_string(&path) {
             Ok(text) => text,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(e) => return Err(e.into()),
         };
-        let value: T = serde_json::from_str(&text).map_err(|e| {
+        let corrupt = |e: serde_json::Error| {
             Error::Config(format!(
                 "{} could not be read ({e}). Fix or remove it; it has not been changed.",
                 path.display()
             ))
-        })?;
-        if version(&value) > VERSION {
+        };
+        let raw: serde_json::Value = serde_json::from_str(&text).map_err(corrupt)?;
+        let version = raw
+            .get("version")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0);
+        if version > u64::from(VERSION) {
             return Err(Error::Config(format!(
                 "{} was written by a newer Screen Side. Update Screen Side to use it; it has not been changed.",
                 path.display()
             )));
         }
-        Ok(Some(value))
+        serde_json::from_value(raw).map(Some).map_err(corrupt)
     }
 
     fn write(&self, file: &str, text: String) -> Result<(), Error> {
@@ -262,7 +265,7 @@ impl Store {
 
     pub fn layouts(&self) -> Result<Vec<SavedLayout>, Error> {
         Ok(self
-            .read::<LayoutsFile>(LAYOUTS, |f| f.version)?
+            .read::<LayoutsFile>(LAYOUTS)?
             .map(|f| f.layouts)
             .unwrap_or_default())
     }
@@ -329,7 +332,7 @@ impl Store {
 
     pub fn settings(&self) -> Result<Settings, Error> {
         Ok(self
-            .read::<SettingsFile>(SETTINGS, |f| f.version)?
+            .read::<SettingsFile>(SETTINGS)?
             .map(|f| f.settings)
             .unwrap_or_default())
     }
@@ -569,5 +572,28 @@ mod tests {
             .summary();
         assert!(summary.contains("left"), "{summary}");
         assert!(summary.contains("bottom"), "{summary}");
+    }
+
+    #[test]
+    fn a_newer_file_with_a_new_shape_is_called_newer_not_corrupt() {
+        let (_dir, store) = store();
+        std::fs::create_dir_all(store.dir()).unwrap();
+        let path = store.dir().join("layouts.json");
+        let text = r#"{"version": 3, "layouts": {"office": {"screens": 2}}}"#;
+        std::fs::write(&path, text).unwrap();
+        match store.layouts() {
+            Err(Error::Config(m)) => assert!(m.contains("newer Screen Side"), "{m}"),
+            other => panic!("expected a config error, got {other:?}"),
+        }
+        std::fs::write(
+            store.dir().join("settings.json"),
+            r#"{"version": 2, "background": "sometimes"}"#,
+        )
+        .unwrap();
+        match store.settings() {
+            Err(Error::Config(m)) => assert!(m.contains("newer Screen Side"), "{m}"),
+            other => panic!("expected a config error, got {other:?}"),
+        }
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), text);
     }
 }
