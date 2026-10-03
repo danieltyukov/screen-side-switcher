@@ -158,6 +158,39 @@ pub fn human_keys(keys: &str) -> String {
     parts.join("+")
 }
 
+/// An accelerator as the app stores it ("Super+Alt+S") in GNOME's
+/// notation ("<Super><Alt>s").
+pub fn to_gnome_keys(accelerator: &str) -> String {
+    let parts: Vec<&str> = accelerator.split('+').map(str::trim).collect();
+    let Some((key, modifiers)) = parts.split_last() else {
+        return String::new();
+    };
+    let mut out = String::new();
+    for m in modifiers {
+        out.push_str(match *m {
+            "Ctrl" | "Control" | "CommandOrControl" => "<Primary>",
+            "Alt" | "Option" => "<Alt>",
+            "Shift" => "<Shift>",
+            "Super" | "Meta" | "Cmd" | "Command" => "<Super>",
+            other => return format!("<{other}>{key}"),
+        });
+    }
+    if key.chars().count() == 1 {
+        out.push_str(&key.to_lowercase());
+    } else {
+        out.push_str(key);
+    }
+    out
+}
+
+/// True when the GNOME custom keybinding for Screen Side is in place.
+pub fn is_installed(runner: &dyn Runner, desktop: Desktop) -> bool {
+    desktop == Desktop::Gnome
+        && existing_list(runner, desktop)
+            .map(|list| parse_list(&list).iter().any(|p| p == GNOME_PATH))
+            .unwrap_or(false)
+}
+
 fn gsettings(args: &[&str]) -> Vec<String> {
     std::iter::once("gsettings")
         .chain(args.iter().copied())
@@ -561,5 +594,28 @@ mod tests {
         assert!(show(&none, Desktop::Gnome)
             .unwrap()
             .contains("No Screen Side shortcut"));
+    }
+
+    #[test]
+    fn accelerators_convert_to_gnome_keys() {
+        assert_eq!(to_gnome_keys("Super+Alt+S"), "<Super><Alt>s");
+        assert_eq!(to_gnome_keys("Ctrl+Shift+F12"), "<Primary><Shift>F12");
+        assert_eq!(human_keys(&to_gnome_keys("Ctrl+Alt+K")), "Ctrl+Alt+K");
+    }
+
+    #[test]
+    fn installed_means_our_path_is_in_the_list() {
+        let yes = Scripted::new(vec![(
+            "gsettings",
+            Ok(&*Box::leak(
+                format!("['/x/', '{GNOME_PATH}']").into_boxed_str(),
+            )),
+        )]);
+        assert!(is_installed(&yes, Desktop::Gnome));
+        let no = Scripted::new(vec![("gsettings", Ok("@as []"))]);
+        assert!(!is_installed(&no, Desktop::Gnome));
+        let broken = Scripted::new(vec![("gsettings", Err("no schema"))]);
+        assert!(!is_installed(&broken, Desktop::Gnome));
+        assert!(!is_installed(&Scripted::new(vec![]), Desktop::Sway));
     }
 }

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Screen Side",
+  "version": "2.0.0",
+  "identifier": "io.github.danieltyukov.ScreenSide",
+  "mainBinaryName": "screen-side-gui",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Screen Side",
+        "width": 560,
+        "height": 700,
+        "minWidth": 440,
+        "minHeight": 560,
+        "resizable": true,
+        "center": true,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "rpm", "appimage"],
+    "category": "Utility",
+    "shortDescription": "Put your external monitor left, right, above or below your laptop screen",
+    "longDescription": "Screen Side puts your external monitor on the side of the laptop screen where it stands on your desk, so the pointer crosses the matching edge. One click, a tray menu, a hotkey or a command, and each desk's layout comes back when you plug in.",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "linux": {
+      "deb": {
+        "desktopTemplate": "screen-side-gui.desktop",
+        "files": { "/usr/bin/screen-side": "../../target/release/screen-side" }
+      },
+      "rpm": {
+        "desktopTemplate": "screen-side-gui.desktop",
+        "files": { "/usr/bin/screen-side": "../../target/release/screen-side" }
+      }
+    },
+    "macOS": { "signingIdentity": "-", "minimumSystemVersion": "12.0" }
+  }
+}
