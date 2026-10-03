@@ -4,9 +4,11 @@ use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand};
-use screen_side_core::backend::{arrange, detect, ApplyMode, Backend, Choice};
+use screen_side_core::backend::{arrange, detect, ApplyMode, Backend, Choice, SystemProbe};
 use screen_side_core::layout::{baseline, infer, Align, Arrangement, Side};
 use screen_side_core::model::State;
+use screen_side_core::run::SystemRunner;
+use screen_side_core::shortcut;
 use screen_side_core::store::{capture, matches, resolve, Store};
 use screen_side_core::watch;
 use screen_side_core::Error;
@@ -107,6 +109,11 @@ enum Command {
     Layouts,
     /// Delete a saved layout.
     Forget { name: String },
+    /// Set up a keyboard shortcut that runs `screen-side toggle`.
+    Shortcut {
+        #[command(subcommand)]
+        action: ShortcutAction,
+    },
     /// Keep running and put saved layouts back when their screens are
     /// connected (layouts saved with --auto).
     Watch {
@@ -114,6 +121,20 @@ enum Command {
         #[arg(long, default_value_t = 2.0)]
         interval: f64,
     },
+}
+
+#[derive(Subcommand)]
+enum ShortcutAction {
+    /// Add the shortcut (on GNOME), or print what to add elsewhere.
+    Install {
+        /// GNOME key combination.
+        #[arg(long, default_value = shortcut::DEFAULT_GNOME_KEYS)]
+        keys: String,
+    },
+    /// Remove the shortcut.
+    Remove,
+    /// Show the shortcut, or how to set one up here.
+    Show,
 }
 
 fn main() -> ExitCode {
@@ -181,6 +202,7 @@ fn run(cli: Cli) -> Result<(), Error> {
             println!("Forgot '{}'.", name.trim());
             return Ok(());
         }
+        Command::Shortcut { action } => return run_shortcut(action),
         Command::Watch { interval } if *interval < 0.5 || !interval.is_finite() => {
             return Err(Error::Usage(
                 "--interval must be at least 0.5 seconds.".into(),
@@ -252,8 +274,31 @@ fn run(cli: Cli) -> Result<(), Error> {
             );
             Ok(())
         }
-        Command::Layouts | Command::Forget { .. } => unreachable!("handled above"),
+        Command::Layouts | Command::Forget { .. } | Command::Shortcut { .. } => {
+            unreachable!("handled above")
+        }
     }
+}
+
+fn run_shortcut(action: &ShortcutAction) -> Result<(), Error> {
+    let desktop = shortcut::desktop(&SystemProbe);
+    let exe = std::env::current_exe()?;
+    let exe = std::fs::canonicalize(&exe).unwrap_or(exe);
+    let command = vec![exe.to_string_lossy().into_owned(), "toggle".to_string()];
+    let text = match action {
+        ShortcutAction::Install { keys } => {
+            shortcut::install(&SystemRunner, desktop, &command, keys)?
+        }
+        ShortcutAction::Remove => shortcut::remove(&SystemRunner, desktop)?,
+        ShortcutAction::Show => {
+            match shortcut::plan_install(desktop, &command, shortcut::DEFAULT_GNOME_KEYS, "") {
+                shortcut::Plan::Run(_) => shortcut::show(&SystemRunner, desktop)?,
+                shortcut::Plan::Instructions(t) | shortcut::Plan::AppManaged(t) => t,
+            }
+        }
+    };
+    println!("{}", text.trim_end());
+    Ok(())
 }
 
 fn list_layouts(store: &Store, json: bool) -> Result<(), Error> {

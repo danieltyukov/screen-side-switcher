@@ -346,3 +346,31 @@ fn watch_rejects_a_bad_interval_and_explains_itself() {
         .success()
         .stdout(predicate::str::contains("saved layouts"));
 }
+
+#[test]
+fn shortcut_on_sway_prints_the_bindsym_line() {
+    let env = sample();
+    let bin = assert_cmd::cargo::cargo_bin("screen-side");
+    let bin = std::fs::canonicalize(bin).unwrap();
+    env.cmd()
+        .env("SCREEN_SIDE_DESKTOP", "sway")
+        .args(["shortcut", "install"])
+        .assert()
+        .success()
+        .stdout(
+            predicate::str::contains("bindsym Mod4+Mod1+s exec")
+                .and(predicate::str::contains(bin.to_string_lossy().as_ref()))
+                .and(predicate::str::contains("'toggle'")),
+        );
+}
+
+#[test]
+fn shortcut_on_x11_is_left_to_the_app() {
+    let env = sample();
+    env.cmd()
+        .env("SCREEN_SIDE_DESKTOP", "x11")
+        .args(["shortcut", "show"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("app registers the shortcut"));
+}

@@ -10,6 +10,7 @@ pub mod error;
 pub mod layout;
 pub mod model;
 pub mod run;
+pub mod shortcut;
 pub mod store;
 pub mod watch;
 
