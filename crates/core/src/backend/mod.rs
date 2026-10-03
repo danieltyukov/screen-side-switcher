@@ -9,6 +9,7 @@ pub mod gnome;
 pub mod kde;
 pub mod mutter;
 pub mod wlroots;
+pub mod x11;
 
 use serde::{Deserialize, Serialize};
 

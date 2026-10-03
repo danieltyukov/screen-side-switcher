@@ -186,6 +186,10 @@ pub fn create(choice: &Choice) -> Result<Box<dyn Backend>, Error> {
         Kind::Wlroots => Ok(Box::new(super::wlroots::Wlroots::new(Box::new(
             crate::run::SystemRunner,
         )))),
+        #[cfg(all(unix, not(target_os = "macos")))]
+        Kind::X11 => Ok(Box::new(super::x11::X11::new(Box::new(
+            crate::run::SystemRunner,
+        )))),
         #[allow(unreachable_patterns)]
         other => Err(Error::Unsupported(format!(
             "The {} backend is not available on this operating system.",
