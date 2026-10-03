@@ -1,0 +1,35 @@
+name: Feature request
+description: Something Screen Side should do that it does not do yet.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Open-ended ideas are welcome in Discussions first. This form is for a
+        concrete change.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: 'Describe it from your desk: the screens, how you move between setups, what gets in the way.'
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What should happen, and where (the app, the tray, the command line).
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - Arranging screens
+        - Saved layouts
+        - Tray, background or shortcut
+        - Command line
+        - Installing or packaging
+        - Documentation or site
+        - Other

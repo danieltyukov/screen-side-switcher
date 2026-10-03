@@ -1,0 +1,78 @@
+name: Bug report
+description: Something does not work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If this is a security problem, do not open an issue; see SECURITY.md.
+        `screen-side doctor` already leaves serial numbers out. Remove anything
+        else you consider private before pasting.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `screen-side --version`, or the version under Settings in the app.
+      placeholder: 2.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: dropdown
+    id: desktop
+    attributes:
+      label: Desktop
+      options:
+        - GNOME
+        - KDE Plasma
+        - Sway
+        - Hyprland
+        - Another wlroots desktop
+        - X11 (Xfce, MATE, i3 or similar)
+        - Windows
+        - macOS
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installed with
+      options:
+        - App installer (.exe, .msi, .dmg, .deb, .rpm)
+        - AppImage
+        - install.sh or install.ps1
+        - cargo install
+        - Built from source
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. How many screens, and where they stand on the desk.
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `screen-side doctor`
+      description: In the app, Settings, Copy diagnostics gives the same text.
+      render: text
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Checks
+      options:
+        - label: I removed anything I consider private from this report.
+          required: true
