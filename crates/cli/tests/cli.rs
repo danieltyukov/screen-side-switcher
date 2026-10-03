@@ -402,3 +402,14 @@ fn doctor_succeeds_without_a_backend() {
         .success()
         .stdout(predicate::str::contains("No backend:"));
 }
+
+#[test]
+fn one_screen_has_no_arrangement_in_json() {
+    let mut file = FakeFile::sample();
+    file.screens[0].enabled = false;
+    file.screens[1].primary = true;
+    let env = Env::new(file);
+    let out = env.cmd().args(["status", "--json"]).output().unwrap();
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(v["arrangement"], serde_json::Value::Null);
+}

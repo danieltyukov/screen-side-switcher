@@ -302,9 +302,13 @@ pub fn compute(state: &State, arr: &Arrangement, origin: Origin) -> Result<Layou
     })
 }
 
-/// The arrangement in force, or None when a screen overlaps the anchor (a
-/// layout made by hand that no side describes).
+/// The arrangement in force. None with fewer than two screens on, or when
+/// a screen overlaps the anchor (a layout made by hand that no side
+/// describes).
 pub fn infer(state: &State) -> Option<Arrangement> {
+    if state.enabled().count() < 2 {
+        return None;
+    }
     let anchor = anchor(state)?;
     let a = anchor.rect;
     let mut found: Vec<(Side, i32, &Screen)> = Vec::new();
@@ -969,5 +973,13 @@ pub(crate) mod tests {
             arr(&[("A", Side::Left)], Align::Start).toggled().align,
             Align::Start
         );
+    }
+
+    #[test]
+    fn infer_needs_two_screens() {
+        assert_eq!(infer(&state(vec![laptop(1280, 800)])), None);
+        let mut lid = laptop(1280, 800);
+        lid.enabled = false;
+        assert_eq!(infer(&state(vec![lid, screen("A", 1920, 1080)])), None);
     }
 }
