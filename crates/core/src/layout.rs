@@ -302,6 +302,207 @@ pub fn compute(state: &State, arr: &Arrangement, origin: Origin) -> Result<Layou
     })
 }
 
+/// The arrangement in force, or None when a screen overlaps the anchor (a
+/// layout made by hand that no side describes).
+pub fn infer(state: &State) -> Option<Arrangement> {
+    let anchor = anchor(state)?;
+    let a = anchor.rect;
+    let mut found: Vec<(Side, i32, &Screen)> = Vec::new();
+    for s in state.enabled().filter(|s| s.id != anchor.id) {
+        let r = s.rect;
+        let gaps = [
+            (Side::Left, a.x - r.right()),
+            (Side::Right, r.x - a.right()),
+            (Side::Above, a.y - r.bottom()),
+            (Side::Below, r.y - a.bottom()),
+        ];
+        let (side, gap) = gaps
+            .into_iter()
+            .filter(|(_, g)| *g >= 0)
+            .max_by_key(|(_, g)| *g)?;
+        found.push((side, gap, s));
+    }
+    found.sort_by_key(|(side, gap, s)| {
+        (
+            Side::ALL.iter().position(|x| x == side),
+            *gap,
+            s.connector.clone(),
+        )
+    });
+
+    let matches = |align: Align| {
+        found.iter().all(|(side, _, s)| {
+            let (anchor_len, len, actual) = if side.horizontal() {
+                (a.height, s.rect.height, s.rect.y - a.y)
+            } else {
+                (a.width, s.rect.width, s.rect.x - a.x)
+            };
+            (actual - offset(align, anchor_len, len)).abs() <= 1
+        })
+    };
+    let align = [Align::Center, Align::Start, Align::End]
+        .into_iter()
+        .find(|al| matches(*al));
+
+    Some(Arrangement {
+        anchor: anchor.id.clone(),
+        placements: found
+            .iter()
+            .map(|(side, _, s)| Placement {
+                screen: s.id.clone(),
+                side: *side,
+            })
+            .collect(),
+        align: align.unwrap_or_default(),
+        aligned: align.is_some(),
+        primary: state
+            .primary()
+            .map_or_else(|| anchor.id.clone(), |s| s.id.clone()),
+    })
+}
+
+/// The arrangement operations start from: the one in force, or every other
+/// screen to the right of the anchor in left-to-right order.
+pub fn baseline(state: &State) -> Result<Arrangement, LayoutError> {
+    match state.enabled().count() {
+        0 => return Err(LayoutError::NoScreens),
+        1 => return Err(LayoutError::OnlyOneScreen),
+        _ => {}
+    }
+    if let Some(arr) = infer(state) {
+        return Ok(arr);
+    }
+    let anchor = anchor(state).ok_or(LayoutError::NoScreens)?;
+    let mut others: Vec<&Screen> = state.enabled().filter(|s| s.id != anchor.id).collect();
+    others.sort_by_key(|s| (s.rect.x, s.rect.y));
+    Ok(Arrangement {
+        anchor: anchor.id.clone(),
+        placements: others
+            .iter()
+            .map(|s| Placement {
+                screen: s.id.clone(),
+                side: Side::Right,
+            })
+            .collect(),
+        align: Align::Center,
+        aligned: true,
+        primary: state
+            .primary()
+            .map_or_else(|| anchor.id.clone(), |s| s.id.clone()),
+    })
+}
+
+impl Arrangement {
+    pub fn side_of(&self, id: &str) -> Option<Side> {
+        self.placements
+            .iter()
+            .find(|p| p.screen == id)
+            .map(|p| p.side)
+    }
+
+    /// The side every other screen is on, if they share one.
+    pub fn common_side(&self) -> Option<Side> {
+        let first = self.placements.first()?.side;
+        self.placements
+            .iter()
+            .all(|p| p.side == first)
+            .then_some(first)
+    }
+
+    /// Every screen to `side`. Screens nearest the anchor stay nearest, so
+    /// moving a whole row is a mirror image rather than a reshuffle.
+    pub fn move_all(&self, side: Side) -> Arrangement {
+        let mut ranked: Vec<(usize, usize, &Placement)> = self
+            .placements
+            .iter()
+            .enumerate()
+            .map(|(i, p)| {
+                let rank = self.placements[..i]
+                    .iter()
+                    .filter(|q| q.side == p.side)
+                    .count();
+                (rank, i, p)
+            })
+            .collect();
+        ranked.sort_by_key(|(rank, i, _)| (*rank, *i));
+        Arrangement {
+            placements: ranked
+                .into_iter()
+                .map(|(_, _, p)| Placement {
+                    screen: p.screen.clone(),
+                    side,
+                })
+                .collect(),
+            aligned: true,
+            ..self.clone()
+        }
+    }
+
+    /// One screen to `side`, as the farthest on that side. Choosing the
+    /// anchor with exactly one other screen means "put the anchor there",
+    /// which moves the other screen to the opposite side.
+    pub fn move_screen(&self, id: &str, side: Side) -> Result<Arrangement, LayoutError> {
+        if id == self.anchor {
+            return match self.placements.as_slice() {
+                [only] => self.move_screen(&only.screen.clone(), side.mirrored()),
+                _ => Err(LayoutError::AnchorSelected),
+            };
+        }
+        let current = self
+            .side_of(id)
+            .ok_or_else(|| LayoutError::UnknownScreen(id.to_string()))?;
+        if current == side {
+            return Ok(self.clone());
+        }
+        let mut placements: Vec<Placement> = self
+            .placements
+            .iter()
+            .filter(|p| p.screen != id)
+            .cloned()
+            .collect();
+        placements.push(Placement {
+            screen: id.to_string(),
+            side,
+        });
+        Ok(Arrangement {
+            placements,
+            aligned: true,
+            ..self.clone()
+        })
+    }
+
+    /// Left with right and above with below, for every screen.
+    pub fn toggled(&self) -> Arrangement {
+        Arrangement {
+            placements: self
+                .placements
+                .iter()
+                .map(|p| Placement {
+                    screen: p.screen.clone(),
+                    side: p.side.mirrored(),
+                })
+                .collect(),
+            aligned: true,
+            ..self.clone()
+        }
+    }
+
+    pub fn with_align(&self, align: Align) -> Arrangement {
+        Arrangement {
+            align,
+            aligned: true,
+            ..self.clone()
+        }
+    }
+
+    pub fn with_primary(&self, id: &str) -> Arrangement {
+        Arrangement {
+            primary: id.to_string(),
+            ..self.clone()
+        }
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
@@ -556,6 +757,184 @@ pub(crate) mod tests {
         assert_eq!(
             serde_json::to_string(&Origin::TopLeft).unwrap(),
             "\"top_left\""
+        );
+    }
+
+    fn placed(mut s: Screen, x: i32, y: i32) -> Screen {
+        s.rect.x = x;
+        s.rect.y = y;
+        s
+    }
+
+    #[test]
+    fn infer_reads_back_what_compute_wrote() {
+        let base = state(vec![
+            laptop(1280, 800),
+            screen("A", 1920, 1080),
+            screen("B", 2560, 1440),
+        ]);
+        for align in [Align::Start, Align::Center, Align::End] {
+            let wanted = arr(&[("A", Side::Left), ("B", Side::Left)], align);
+            let layout = compute(&base, &wanted, Origin::TopLeft).unwrap();
+            let mut moved = base.clone();
+            for s in &mut moved.screens {
+                let p = layout.position(&s.id).unwrap();
+                s.rect.x = p.x;
+                s.rect.y = p.y;
+            }
+            assert_eq!(infer(&moved).unwrap(), wanted, "{align}");
+        }
+    }
+
+    #[test]
+    fn infer_takes_the_larger_gap_for_a_diagonal_screen() {
+        let s = state(vec![
+            placed(laptop(1280, 800), 0, 0),
+            placed(screen("A", 100, 100), 2000, 900),
+        ]);
+        assert_eq!(infer(&s).unwrap().side_of("A"), Some(Side::Right));
+    }
+
+    #[test]
+    fn infer_gives_up_when_a_screen_overlaps_the_anchor() {
+        let s = state(vec![
+            placed(laptop(1280, 800), 0, 0),
+            placed(screen("A", 1920, 1080), 600, 0),
+        ]);
+        assert_eq!(infer(&s), None);
+    }
+
+    #[test]
+    fn infer_reports_custom_alignment() {
+        let s = state(vec![
+            placed(laptop(1280, 800), 0, 100),
+            placed(screen("A", 1920, 1080), 1280, 0),
+        ]);
+        let a = infer(&s).unwrap();
+        assert!(!a.aligned);
+        assert_eq!(a.align, Align::Center);
+    }
+
+    #[test]
+    fn infer_tolerates_one_pixel_of_centring() {
+        // 1.0 centred against the taller screen, which can differ by one.
+        let s = state(vec![
+            placed(laptop(1280, 801), 2560, 319),
+            placed(screen("A", 2560, 1440), 0, 0),
+        ]);
+        let a = infer(&s).unwrap();
+        assert!(a.aligned);
+        assert_eq!(a.align, Align::Center);
+    }
+
+    #[test]
+    fn infer_ignores_switched_off_screens() {
+        let mut lid = laptop(1280, 800);
+        lid.enabled = false;
+        let mut a = placed(screen("A", 1920, 1080), 0, 0);
+        a.primary = true;
+        let s = state(vec![lid, a, placed(screen("B", 1920, 1080), 1920, 0)]);
+        let inferred = infer(&s).unwrap();
+        assert_eq!(inferred.anchor, "A");
+        assert_eq!(
+            inferred.placements,
+            vec![Placement {
+                screen: "B".into(),
+                side: Side::Right
+            }]
+        );
+    }
+
+    #[test]
+    fn baseline_needs_two_screens_and_falls_back_to_the_right() {
+        assert_eq!(
+            baseline(&state(vec![laptop(1280, 800)])).unwrap_err(),
+            LayoutError::OnlyOneScreen
+        );
+        let overlapping = state(vec![
+            placed(laptop(1280, 800), 0, 0),
+            placed(screen("A", 1920, 1080), 600, 0),
+        ]);
+        let b = baseline(&overlapping).unwrap();
+        assert_eq!(
+            b.placements,
+            vec![Placement {
+                screen: "A".into(),
+                side: Side::Right
+            }]
+        );
+    }
+
+    #[test]
+    fn move_all_keeps_the_nearest_screen_nearest() {
+        let a = arr(
+            &[("A", Side::Right), ("B", Side::Right), ("C", Side::Above)],
+            Align::Center,
+        );
+        let moved = a.move_all(Side::Left);
+        let order: Vec<(&str, Side)> = moved
+            .placements
+            .iter()
+            .map(|p| (p.screen.as_str(), p.side))
+            .collect();
+        assert_eq!(
+            order,
+            [("A", Side::Left), ("C", Side::Left), ("B", Side::Left)]
+        );
+    }
+
+    #[test]
+    fn move_screen_moves_one_and_puts_it_last() {
+        let a = arr(
+            &[("A", Side::Left), ("B", Side::Right), ("C", Side::Right)],
+            Align::Center,
+        );
+        let moved = a.move_screen("A", Side::Right).unwrap();
+        assert_eq!(moved.side_of("A"), Some(Side::Right));
+        assert_eq!(moved.placements.last().unwrap().screen, "A");
+        assert_eq!(
+            a.move_screen("B", Side::Right).unwrap(),
+            a,
+            "same side is a no-op"
+        );
+        assert_eq!(
+            a.move_screen("Z", Side::Left).unwrap_err(),
+            LayoutError::UnknownScreen("Z".into())
+        );
+    }
+
+    #[test]
+    fn moving_the_anchor_moves_the_only_other_screen_the_other_way() {
+        let one = arr(&[("A", Side::Right)], Align::Center);
+        assert_eq!(
+            one.move_screen("eDP-1", Side::Right).unwrap().side_of("A"),
+            Some(Side::Left)
+        );
+        let two = arr(&[("A", Side::Right), ("B", Side::Left)], Align::Center);
+        assert_eq!(
+            two.move_screen("eDP-1", Side::Left).unwrap_err(),
+            LayoutError::AnchorSelected
+        );
+    }
+
+    #[test]
+    fn toggle_mirrors_every_side() {
+        let a = arr(&[("A", Side::Left), ("B", Side::Above)], Align::Center);
+        let t = a.toggled();
+        assert_eq!(t.side_of("A"), Some(Side::Right));
+        assert_eq!(t.side_of("B"), Some(Side::Below));
+        assert_eq!(t.toggled(), a);
+    }
+
+    #[test]
+    fn common_side_only_when_all_agree() {
+        assert_eq!(
+            arr(&[("A", Side::Left), ("B", Side::Left)], Align::Center).common_side(),
+            Some(Side::Left)
+        );
+        assert_eq!(
+            arr(&[("A", Side::Left), ("B", Side::Above)], Align::Center).common_side(),
+            None
         );
     }
 }
