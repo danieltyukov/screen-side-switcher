@@ -9,5 +9,6 @@ pub mod error;
 pub mod layout;
 pub mod model;
 pub mod run;
+pub mod store;
 
 pub use error::Error;
