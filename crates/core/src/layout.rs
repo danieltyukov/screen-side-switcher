@@ -471,9 +471,20 @@ impl Arrangement {
         })
     }
 
-    /// Left with right and above with below, for every screen.
+    /// Left with right and above with below, for every screen. When screens
+    /// sit on both axes this is a point reflection, so the alignment flips
+    /// too (start with end) and the shape stays the same; on one axis the
+    /// alignment stays, so a top-aligned monitor stays top-aligned.
     pub fn toggled(&self) -> Arrangement {
+        let horizontal = self.placements.iter().any(|p| p.side.horizontal());
+        let vertical = self.placements.iter().any(|p| !p.side.horizontal());
+        let align = match (horizontal && vertical, self.align) {
+            (true, Align::Start) => Align::End,
+            (true, Align::End) => Align::Start,
+            (_, align) => align,
+        };
         Arrangement {
+            align,
             placements: self
                 .placements
                 .iter()
@@ -935,6 +946,28 @@ pub(crate) mod tests {
         assert_eq!(
             arr(&[("A", Side::Left), ("B", Side::Above)], Align::Center).common_side(),
             None
+        );
+    }
+
+    #[test]
+    fn toggling_both_axes_is_a_true_mirror() {
+        // Left and above, top-aligned, mirrors to right and below; keeping
+        // "start" would make the two meet in the corner, so it flips too.
+        let s = state(vec![
+            laptop(1280, 800),
+            screen("A", 2560, 1440),
+            screen("B", 1920, 1080),
+        ]);
+        let a = arr(&[("A", Side::Left), ("B", Side::Above)], Align::Start);
+        assert!(compute(&s, &a, Origin::TopLeft).is_ok());
+        let t = a.toggled();
+        assert_eq!(t.align, Align::End);
+        assert!(compute(&s, &t, Origin::TopLeft).is_ok());
+        // One axis only: the alignment stays, so a top-aligned monitor stays
+        // top-aligned when it moves from left to right.
+        assert_eq!(
+            arr(&[("A", Side::Left)], Align::Start).toggled().align,
+            Align::Start
         );
     }
 }

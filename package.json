@@ -1,0 +1,19 @@
+{
+  "name": "screen-side",
+  "private": true,
+  "type": "module",
+  "workspaces": ["app", "site"],
+  "scripts": {
+    "dev": "npm run dev -w app",
+    "build": "npm run build -w app",
+    "test": "vitest run",
+    "test:e2e": "npm run e2e -w app && npm run e2e -w site",
+    "typecheck": "tsc -p app --noEmit",
+    "tauri": "npm run tauri -w app --"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.0"
+  }
+}
