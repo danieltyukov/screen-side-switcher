@@ -1,0 +1,518 @@
+@import '../app/src/tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.wrap {
+  width: min(1080px, 100% - 32px);
+  margin-inline: auto;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+}
+
+.skip:focus {
+  left: 16px;
+  top: 12px;
+  z-index: 10;
+  padding: 8px 12px;
+  background: var(--surface);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Header */
+.head-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.mark {
+  color: var(--accent);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: 0.95rem;
+}
+
+.links a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.links a:hover {
+  color: var(--text);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+/* Hero: the words on one side, the desk on the other. */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: var(--space-6);
+  padding-block: var(--space-6) 56px;
+}
+
+.hero h1 {
+  margin: 0 0 var(--space-4);
+  font-size: clamp(2rem, 1.2rem + 3.2vw, 3.25rem);
+  font-weight: 750;
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.lead {
+  max-width: 34em;
+  margin: 0 0 var(--space-5);
+  color: var(--muted);
+  font-size: 1.125rem;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-m);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.button.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.button.primary:hover {
+  background: var(--accent-hover);
+  color: var(--on-accent);
+}
+
+.button.secondary {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.button.secondary:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.fine {
+  margin: var(--space-4) 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* The desk */
+.demo {
+  margin: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
+  background: var(--surface-2);
+}
+
+#desk {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Transitions start after the first placement, so nothing flies in on load. */
+#desk.ready .thing {
+  transition: transform 420ms var(--ease);
+}
+
+#desk .bezel {
+  fill: var(--bezel);
+}
+
+#desk .glass {
+  fill: var(--glass);
+}
+
+#desk .laptop-glass {
+  fill: var(--glass-primary);
+}
+
+#desk .stand {
+  fill: var(--border-strong);
+  transition: opacity var(--dur-fast);
+}
+
+#desk .stand.hidden {
+  opacity: 0;
+}
+
+#desk .label {
+  fill: var(--text);
+  font-family: var(--font-ui);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+#desk .edge,
+#desk .edge-under {
+  stroke-linecap: round;
+}
+
+#desk .edge {
+  stroke: var(--pointer);
+  stroke-width: 7;
+}
+
+#desk .edge-under {
+  stroke: var(--pointer-ink);
+  stroke-width: 11;
+  opacity: 0.55;
+}
+
+#desk.ready #edge {
+  transition: transform 420ms var(--ease);
+}
+
+#desk #cursor path {
+  fill: var(--cursor);
+  stroke: var(--cursor-ink);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.demo figcaption {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.demo figcaption p {
+  min-height: 3.1em;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.segmented button {
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.segmented button:first-child {
+  border-left: 0;
+}
+
+.segmented button:hover {
+  background: var(--accent-tint);
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Sections */
+.section {
+  padding-block: 40px;
+  border-top: 1px solid var(--border);
+}
+
+.section h2 {
+  margin: 0 0 var(--space-4);
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+}
+
+.section p {
+  max-width: 44em;
+}
+
+/* Install tabs: radios and labels, so they work without JavaScript. */
+.install > input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.install .tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: var(--space-4);
+  padding: 3px;
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+}
+
+.install .tabs label {
+  padding: 6px 14px;
+  border-radius: calc(var(--radius-m) - 3px);
+  color: var(--muted);
+  font-weight: 550;
+  cursor: pointer;
+}
+
+#t-windows:checked ~ .tabs label[for='t-windows'],
+#t-macos:checked ~ .tabs label[for='t-macos'],
+#t-linux:checked ~ .tabs label[for='t-linux'],
+#t-cli:checked ~ .tabs label[for='t-cli'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+#t-windows:focus-visible ~ .tabs label[for='t-windows'],
+#t-macos:focus-visible ~ .tabs label[for='t-macos'],
+#t-linux:focus-visible ~ .tabs label[for='t-linux'],
+#t-cli:focus-visible ~ .tabs label[for='t-cli'] {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.install .panel {
+  display: none;
+}
+
+#t-windows:checked ~ .p-windows,
+#t-macos:checked ~ .p-macos,
+#t-linux:checked ~ .p-linux,
+#t-cli:checked ~ .p-cli {
+  display: block;
+}
+
+.code {
+  display: flex;
+  align-items: stretch;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+}
+
+.code pre {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-3);
+  overflow-x: auto;
+  font-size: 0.875rem;
+}
+
+.copy {
+  padding: 0 var(--space-4);
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.copy:hover {
+  background: var(--accent-tint);
+}
+
+/* What it does */
+.features-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  align-items: start;
+  gap: var(--space-6);
+}
+
+.features dl {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.features dt {
+  font-weight: 650;
+}
+
+.features dd {
+  margin: 2px 0 0;
+  color: var(--muted);
+}
+
+.shot img {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin-inline: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+}
+
+/* Works on */
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+th,
+td {
+  padding: 10px 12px 10px 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+pre.block {
+  margin: 0;
+  padding: var(--space-4);
+  overflow-x: auto;
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.contribute {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+/* Footer */
+.foot {
+  border-top: 1px solid var(--border);
+}
+
+.foot-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block: var(--space-5);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 860px) {
+  .hero,
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  #desk.ready .thing,
+  #desk.ready #edge {
+    transition: none;
+  }
+}

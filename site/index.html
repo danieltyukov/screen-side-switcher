@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Screen Side</title>
+    <meta
+      name="description"
+      content="Put your external monitor left, right, above or below your laptop screen with one click, a hotkey or a command, and get each desk's layout back when you plug in. Windows, macOS and Linux."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f3f6fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e1726" media="(prefers-color-scheme: dark)" />
+    <link rel="canonical" href="https://danieltyukov.github.io/screen-side-switcher/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Screen Side" />
+    <meta property="og:title" content="Screen Side" />
+    <meta property="og:description" content="Your monitor is on the left. Now the pointer knows it. Windows, macOS and Linux." />
+    <meta property="og:url" content="https://danieltyukov.github.io/screen-side-switcher/" />
+    <meta property="og:image" content="https://danieltyukov.github.io/screen-side-switcher/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A monitor beside a laptop with the edge between them lit in yellow, and the words: Your monitor is on the left. Now the pointer knows it." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <script>
+      // Blocking, so a stored dark choice applies before the first paint.
+      try {
+        var t = localStorage.getItem('screen-side-theme');
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+      } catch (e) {
+        // Storage refused; the page follows the system.
+      }
+    </script>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="head">
+      <div class="wrap head-inner">
+        <a class="brand" href="./">
+          <svg class="mark" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true" focusable="false">
+            <rect x="2" y="8" width="13" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
+            <rect x="17" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
+            <path d="M8.5 18 V22 M5 23 H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <path d="M16 25 H31" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <path d="M15.9 9 V17" stroke="var(--pointer)" stroke-width="2.6" stroke-linecap="round" />
+          </svg>
+          <span>Screen Side</span>
+        </a>
+        <nav class="links" aria-label="Project">
+          <a href="https://github.com/danieltyukov/screen-side-switcher">GitHub</a>
+          <a href="https://github.com/danieltyukov/screen-side-switcher/releases">Releases</a>
+          <a href="https://github.com/danieltyukov/screen-side-switcher/discussions">Discussions</a>
+          <button type="button" id="theme" class="toggle" aria-pressed="false">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
+              <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.4" />
+              <path d="M8 2 A6 6 0 0 0 8 14 Z" fill="currentColor" />
+            </svg>
+            <span>Dark theme</span>
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero wrap" aria-labelledby="hero-title">
+        <div class="hero-text">
+          <h1 id="hero-title">Your monitor is on the left. Now the pointer knows it.</h1>
+          <p class="lead">
+            Screen Side tells your computer which side of the laptop your external screen stands on, so the pointer
+            leaves through the edge that faces it. Pick a side with one click, from the tray, with a hotkey or from the
+            command line. At each desk, the layout you saved comes back when you plug in.
+          </p>
+          <div class="cta">
+            <a id="download" class="button primary" href="https://github.com/danieltyukov/screen-side-switcher/releases/latest">
+              Download
+            </a>
+            <a class="button secondary" href="#install">Other downloads</a>
+          </div>
+          <p class="fine">Windows 10 and 11, macOS 12 and newer, and Linux (GNOME, KDE Plasma, Sway, Hyprland, X11). Free and open source, MIT licence.</p>
+        </div>
+
+        <figure class="demo" role="group" aria-label="Try it">
+          <svg id="desk" viewBox="0 0 760 420" aria-hidden="true" focusable="false">
+            <g id="monitor" class="thing">
+              <rect class="bezel" width="300" height="180" rx="10" />
+              <rect class="glass" x="9" y="9" width="282" height="162" rx="4" />
+              <text class="label" x="150" y="96" text-anchor="middle">Monitor</text>
+              <path class="stand" d="M138 180 h24 v26 h34 v10 h-92 v-10 h34 z" />
+            </g>
+            <g id="laptop" class="thing">
+              <rect class="bezel" width="210" height="135" rx="9" />
+              <rect class="glass laptop-glass" x="8" y="8" width="194" height="119" rx="4" />
+              <text class="label" x="105" y="74" text-anchor="middle">Laptop</text>
+              <path class="stand" d="M-14 135 H224 L210 152 H0 Z" />
+            </g>
+            <g id="edge">
+              <line class="edge-under" />
+              <line class="edge" />
+            </g>
+            <g id="cursor">
+              <path d="M0 0 L0 22 L6 17 L10 26 L14 24.5 L10 15.5 L17.5 15.5 Z" />
+            </g>
+          </svg>
+          <figcaption>
+            <div class="demo-controls">
+              <div class="segmented" role="group" aria-label="Side">
+                <button type="button" data-side="left" aria-pressed="true">Left</button>
+                <button type="button" data-side="right" aria-pressed="false">Right</button>
+                <button type="button" data-side="above" aria-pressed="false">Above</button>
+                <button type="button" data-side="below" aria-pressed="false">Below</button>
+              </div>
+            </div>
+            <p id="demo-caption" aria-live="polite">
+              The pointer leaves the left edge of the laptop and enters the right edge of the monitor.
+            </p>
+          </figcaption>
+        </figure>
+      </section>
+
+      <section id="install" class="wrap section" aria-labelledby="install-title">
+        <h2 id="install-title">Install</h2>
+        <div class="install">
+          <input type="radio" name="os" id="t-windows" checked />
+          <input type="radio" name="os" id="t-macos" />
+          <input type="radio" name="os" id="t-linux" />
+          <input type="radio" name="os" id="t-cli" />
+          <div class="tabs">
+            <label for="t-windows">Windows</label>
+            <label for="t-macos">macOS</label>
+            <label for="t-linux">Linux</label>
+            <label for="t-cli">Command line</label>
+          </div>
+          <div class="panel p-windows">
+            <p>
+              Download
+              <a href="https://github.com/danieltyukov/screen-side-switcher/releases/latest/download/ScreenSide_x64-setup.exe">ScreenSide_x64-setup.exe</a>
+              and run it. It installs for your account only, with no admin prompt. The installer is not code-signed, so
+              SmartScreen asks once: choose More info, then Run anyway. An
+              <a href="https://github.com/danieltyukov/screen-side-switcher/releases/latest/download/ScreenSide_x64.msi">MSI</a>
+              of the same build is there for managed machines.
+            </p>
+          </div>
+          <div class="panel p-macos">
+            <p>
+              Download
+              <a href="https://github.com/danieltyukov/screen-side-switcher/releases/latest/download/ScreenSide_universal.dmg">ScreenSide_universal.dmg</a>
+              (Apple silicon and Intel) and drag Screen Side to Applications. The app is not notarised, so the first time
+              macOS refuses to open it: go to System Settings, Privacy and Security, and choose Open Anyway.
+            </p>
+          </div>
+          <div class="panel p-linux">
+            <p>Debian and Ubuntu:</p>
+            <div class="code">
+              <pre><code>sudo apt install ./screen-side_amd64.deb</code></pre>
+              <button type="button" class="copy">Copy</button>
+            </div>
+            <p>
+              Fedora and openSUSE take the
+              <a href="https://github.com/danieltyukov/screen-side-switcher/releases/latest/download/screen-side_x86_64.rpm">.rpm</a>,
+              and anything else the
+              <a href="https://github.com/danieltyukov/screen-side-switcher/releases/latest/download/screen-side_x86_64.AppImage">AppImage</a>
+              (<code>chmod +x</code> it and run it). Download the
+              <a href="https://github.com/danieltyukov/screen-side-switcher/releases/latest/download/screen-side_amd64.deb">.deb</a>
+              first for the command above. Sway, Hyprland and other wlroots desktops also need <code>wlr-randr</code>.
+            </p>
+          </div>
+          <div class="panel p-cli">
+            <p>The <code>screen-side</code> command, without the app. macOS and Linux:</p>
+            <div class="code">
+              <pre><code>curl -LsSf https://danieltyukov.github.io/screen-side-switcher/install.sh | sh</code></pre>
+              <button type="button" class="copy">Copy</button>
+            </div>
+            <p>Windows, in PowerShell:</p>
+            <div class="code">
+              <pre><code>powershell -ExecutionPolicy ByPass -c "irm https://danieltyukov.github.io/screen-side-switcher/install.ps1 | iex"</code></pre>
+              <button type="button" class="copy">Copy</button>
+            </div>
+            <p>
+              Or with Rust: <code>cargo install --git https://github.com/danieltyukov/screen-side-switcher screen-side</code>.
+              You can <a href="./install.sh">read install.sh</a> and <a href="./install.ps1">install.ps1</a> first.
+            </p>
+          </div>
+        </div>
+        <p class="visually-hidden" id="copy-status" aria-live="polite"></p>
+      </section>
+
+      <section class="wrap section features" aria-labelledby="features-title">
+        <h2 id="features-title">What it does</h2>
+        <div class="features-grid">
+          <dl>
+            <div>
+              <dt>Several screens</dt>
+              <dd>Pick which monitor moves, or move them all. Two on the left line up outward in order.</dd>
+            </div>
+            <div>
+              <dt>A layout per desk</dt>
+              <dd>Save the arrangement at each desk. Mark it Auto and it comes back when that monitor is plugged in.</dd>
+            </div>
+            <div>
+              <dt>Tray and hotkey</dt>
+              <dd>Swap sides from the tray or with a keyboard shortcut, without opening a window.</dd>
+            </div>
+            <div>
+              <dt>Command line</dt>
+              <dd><code>screen-side left</code>, <code>toggle</code>, <code>apply office</code>, with JSON output for scripts.</dd>
+            </div>
+            <div>
+              <dt>Alignment and primary</dt>
+              <dd>Line screens up at the top, centre or bottom, and choose which one is primary.</dd>
+            </div>
+          </dl>
+          <picture class="shot">
+            <source srcset="../docs/img/app-dark.png" media="(prefers-color-scheme: dark)" />
+            <img
+              src="../docs/img/app-light.png"
+              width="560"
+              height="700"
+              loading="lazy"
+              alt="The Screen Side window: a drawing of a monitor left of a laptop with a second monitor above it, the edge between the monitor and the laptop lit in yellow, and buttons for the side, the alignment and the primary screen."
+            />
+          </picture>
+        </div>
+      </section>
+
+      <section class="wrap section" aria-labelledby="works-title">
+        <h2 id="works-title">Works on</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Desktop</th>
+                <th scope="col">How Screen Side talks to it</th>
+                <th scope="col">Tested on real screens</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>GNOME (Wayland and X11), Pantheon, Budgie</td><td>Mutter display configuration over D-Bus</td><td>Yes</td></tr>
+              <tr><td>KDE Plasma 5 and 6</td><td><code>kscreen-doctor</code></td><td>Recorded output; reports welcome</td></tr>
+              <tr><td>Sway, Hyprland, niri, river, labwc</td><td><code>wlr-randr</code></td><td>Recorded output; reports welcome</td></tr>
+              <tr><td>Xfce, MATE, i3 and other X11</td><td><code>xrandr</code></td><td>Recorded output; reports welcome</td></tr>
+              <tr><td>Windows 10 and 11</td><td>Display configuration API</td><td>In CI; reports welcome</td></tr>
+              <tr><td>macOS 12 and newer</td><td>Quartz Display Services</td><td>In CI; reports welcome</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          If your desktop is missing or misbehaves,
+          <a href="https://github.com/danieltyukov/screen-side-switcher/issues/new?template=desktop.yml">tell us what it reports</a>.
+          Adding a desktop is one file; <a href="https://github.com/danieltyukov/screen-side-switcher/blob/main/docs/BACKENDS.md">BACKENDS.md</a> shows how.
+        </p>
+      </section>
+
+      <section class="wrap section" aria-labelledby="cli-title">
+        <h2 id="cli-title">From the command line</h2>
+        <pre class="block"><code>screen-side                     show the screens and where they are
+screen-side left                put the external screen on the left
+screen-side toggle              swap left and right (for a keyboard shortcut)
+screen-side left --screen dell  move one screen of several
+screen-side align end           line up the bottom edges
+screen-side save office --auto  remember this desk
+screen-side watch               put saved layouts back as screens connect
+screen-side doctor              what to paste into a bug report</code></pre>
+      </section>
+
+      <section class="wrap section" aria-labelledby="contribute-title">
+        <h2 id="contribute-title">Help make it better</h2>
+        <ul class="contribute">
+          <li><a href="https://github.com/danieltyukov/screen-side-switcher/issues/new/choose">Report a problem</a>, with the output of <code>screen-side doctor</code>.</li>
+          <li><a href="https://github.com/danieltyukov/screen-side-switcher/discussions">Suggest an idea or ask a question</a> in Discussions.</li>
+          <li><a href="https://github.com/danieltyukov/screen-side-switcher/blob/main/docs/BACKENDS.md">Add support for your desktop</a>.</li>
+          <li>Package it for Homebrew, winget, the AUR or Flathub. <a href="https://github.com/danieltyukov/screen-side-switcher/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> has the details.</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="wrap foot-inner">
+        <span>Screen Side 2.0.0. MIT licence.</span>
+        <a href="https://github.com/danieltyukov/screen-side-switcher">Source on GitHub</a>
+      </div>
+    </footer>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

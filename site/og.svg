@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f3f6fa"/>
+  <g transform="translate(90 200)">
+    <rect width="330" height="200" rx="12" fill="#10213a"/>
+    <rect x="10" y="10" width="310" height="180" rx="5" fill="#dbe6f2"/>
+    <path d="M150 200 h30 v34 h40 v12 h-110 v-12 h40 z" fill="#b7c3d2"/>
+    <rect x="330" y="35" width="230" height="148" rx="10" fill="#10213a"/>
+    <rect x="339" y="44" width="212" height="130" rx="4" fill="#c6dbf2"/>
+    <path d="M316 183 H574 L558 202 H332 Z" fill="#b7c3d2"/>
+    <line x1="330" y1="42" x2="330" y2="176" stroke="#10213a" stroke-width="14" stroke-linecap="round" opacity="0.55"/>
+    <line x1="330" y1="42" x2="330" y2="176" stroke="#ffd45e" stroke-width="9" stroke-linecap="round"/>
+    <path transform="translate(318 96) scale(1.6)" d="M0 0 L0 22 L6 17 L10 26 L14 24.5 L10 15.5 L17.5 15.5 Z" fill="#fff" stroke="#10213a" stroke-width="1.4" stroke-linejoin="round"/>
+  </g>
+  <text x="730" y="250" font-family="Inter, 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="52" font-weight="750" fill="#10213a">Your monitor is</text>
+  <text x="730" y="312" font-family="Inter, 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="52" font-weight="750" fill="#10213a">on the left. Now the</text>
+  <text x="730" y="374" font-family="Inter, 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="52" font-weight="750" fill="#10213a">pointer knows it.</text>
+  <text x="730" y="440" font-family="Inter, 'Noto Sans', 'DejaVu Sans', sans-serif" font-size="28" fill="#4e5d73">Screen Side, for Windows, macOS and Linux</text>
+</svg>
