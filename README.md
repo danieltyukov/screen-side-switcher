@@ -90,14 +90,14 @@ makes it until the next reconnect, and `--json` prints machine-readable output.
 
 ## Supported desktops
 
-| Desktop | How Screen Side talks to it | Tested on real screens |
+| Desktop | How Screen Side talks to it | Tested so far |
 |---|---|---|
-| GNOME (Wayland and X11), Pantheon, Budgie | Mutter display configuration over D-Bus | Yes |
-| KDE Plasma 5 and 6 | `kscreen-doctor` | Recorded output; reports welcome |
-| Sway, Hyprland, niri, river, labwc | `wlr-randr` | Recorded output; reports welcome |
-| Xfce, MATE, i3 and other X11 | `xrandr` | Recorded output; reports welcome |
-| Windows 10 and 11 | Display configuration API | In CI; reports welcome |
-| macOS 12 and newer | Quartz Display Services | In CI; reports welcome |
+| GNOME (Wayland and X11), Pantheon, Budgie | Mutter display configuration over D-Bus | Reading and checking on GNOME 46 |
+| KDE Plasma 5 and 6 | `kscreen-doctor` | Against its documented output; reports welcome |
+| Sway, Hyprland, niri, river, labwc | `wlr-randr` | Against its documented output; reports welcome |
+| Xfce, MATE, i3 and other X11 | `xrandr` | Against its documented output; reports welcome |
+| Windows 10 and 11 | Display configuration API | Reading in CI; reports welcome |
+| macOS 12 and newer | Quartz Display Services | Reading in CI; reports welcome |
 
 If yours is missing or misbehaves, open a
 [desktop support issue](https://github.com/danieltyukov/screen-side-switcher/issues/new?template=desktop.yml)
@@ -108,6 +108,7 @@ explains how each one works and how to add another.
 
 ```
 npm ci
+npm run build -w app               # the app shell embeds the built interface
 npm run tauri dev                  # the app, against your real screens
 cargo test --workspace && npm test
 SCREEN_SIDE_BACKEND=fake cargo run -p screen-side -- status

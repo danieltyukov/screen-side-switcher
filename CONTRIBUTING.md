@@ -23,6 +23,7 @@ scripts/            packing, version and installer checks used by CI
 ## Running the tests
 
 ```
+npm ci && npm run build -w app    # once: the shell embeds the built interface
 cargo test --workspace            # core, CLI and the shell (the shell needs WebKitGTK on Linux)
 cargo test -p screen-side-core -p screen-side   # without the shell
 npm ci && npm test                # the interface, against the mock backend
