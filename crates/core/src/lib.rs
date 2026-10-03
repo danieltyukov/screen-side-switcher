@@ -4,8 +4,10 @@
 //! pick a backend, read a [`model::State`], turn a request into a
 //! [`layout::Arrangement`], compute a [`model::Layout`] and hand it back.
 
+pub mod backend;
 pub mod error;
 pub mod layout;
 pub mod model;
+pub mod run;
 
 pub use error::Error;
