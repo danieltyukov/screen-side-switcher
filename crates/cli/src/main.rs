@@ -1,10 +1,14 @@
+use std::io::Write;
 use std::process::ExitCode;
+use std::sync::atomic::AtomicBool;
+use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand};
 use screen_side_core::backend::{arrange, detect, ApplyMode, Backend, Choice};
 use screen_side_core::layout::{baseline, infer, Align, Arrangement, Side};
 use screen_side_core::model::State;
-use screen_side_core::store::{matches, resolve, Store};
+use screen_side_core::store::{capture, matches, resolve, Store};
+use screen_side_core::watch;
 use screen_side_core::Error;
 
 mod output;
@@ -86,6 +90,30 @@ enum Command {
         #[command(flatten)]
         apply: ApplyArgs,
     },
+    /// Save the current arrangement for the screens connected now.
+    Save {
+        name: String,
+        /// Apply it automatically whenever these screens are connected.
+        #[arg(long)]
+        auto: bool,
+    },
+    /// Apply a saved layout.
+    Apply {
+        name: String,
+        #[command(flatten)]
+        apply: ApplyArgs,
+    },
+    /// List saved layouts.
+    Layouts,
+    /// Delete a saved layout.
+    Forget { name: String },
+    /// Keep running and put saved layouts back when their screens are
+    /// connected (layouts saved with --auto).
+    Watch {
+        /// Seconds between checks.
+        #[arg(long, default_value_t = 2.0)]
+        interval: f64,
+    },
 }
 
 fn main() -> ExitCode {
@@ -144,8 +172,24 @@ fn same_intent(a: &Arrangement, b: &Arrangement) -> bool {
 }
 
 fn run(cli: Cli) -> Result<(), Error> {
+    let command = cli.command.unwrap_or(Command::Status);
+    // These work without screens, over SSH or on a headless machine.
+    match &command {
+        Command::Layouts => return list_layouts(&Store::open()?, cli.json),
+        Command::Forget { name } => {
+            Store::open()?.forget(name)?;
+            println!("Forgot '{}'.", name.trim());
+            return Ok(());
+        }
+        Command::Watch { interval } if *interval < 0.5 || !interval.is_finite() => {
+            return Err(Error::Usage(
+                "--interval must be at least 0.5 seconds.".into(),
+            ))
+        }
+        _ => {}
+    }
     let session = Session::open()?;
-    match cli.command.unwrap_or(Command::Status) {
+    match command {
         Command::Status => print_status(&session, cli.json),
         Command::Left(m) => move_to(&session, Side::Left, m, cli.json),
         Command::Right(m) => move_to(&session, Side::Right, m, cli.json),
@@ -170,7 +214,93 @@ fn run(cli: Cli) -> Result<(), Error> {
             let arr = baseline(&session.state)?.with_align(align);
             finish(&session, &arr, apply.mode(), cli.json)
         }
+        Command::Save { name, auto } => {
+            let arr = baseline(&session.state)?;
+            let saved = capture(&name, &session.state, &arr, auto)?;
+            let shown = saved.name.clone();
+            session.store.put(saved)?;
+            println!(
+                "Saved '{shown}' for these screens.{}",
+                if auto {
+                    " It will be applied whenever they are connected."
+                } else {
+                    ""
+                }
+            );
+            Ok(())
+        }
+        Command::Apply { name, apply } => {
+            let saved = session.store.find(&name)?;
+            let arr = resolve(&saved, &session.state)?;
+            finish(&session, &arr, apply.mode(), cli.json)
+        }
+        Command::Watch { interval } => {
+            println!("Watching for screen changes. Press Ctrl+C to stop.");
+            let stop = AtomicBool::new(false);
+            watch::run(
+                session.backend.as_ref(),
+                &session.store,
+                Duration::from_secs_f64(interval),
+                || true,
+                &stop,
+                |event| {
+                    if let Some(line) = output::event_text(&event) {
+                        println!("{line}");
+                        let _ = std::io::stdout().flush();
+                    }
+                },
+            );
+            Ok(())
+        }
+        Command::Layouts | Command::Forget { .. } => unreachable!("handled above"),
     }
+}
+
+fn list_layouts(store: &Store, json: bool) -> Result<(), Error> {
+    let layouts = store.layouts()?;
+    // Which ones fit the screens connected now, when there are screens.
+    let state = detect().ok().and_then(|(b, _)| b.query().ok());
+    let fits = |l: &screen_side_core::store::SavedLayout| state.as_ref().map(|s| matches(l, s));
+    if json {
+        let list: Vec<serde_json::Value> = layouts
+            .iter()
+            .map(|l| {
+                serde_json::json!({
+                    "name": l.name,
+                    "auto": l.auto,
+                    "matches": fits(l),
+                    "screens": l.screens.len(),
+                    "summary": l.summary(),
+                    "saved": l.saved,
+                })
+            })
+            .collect();
+        let value = serde_json::json!({ "schema": 1, "layouts": list });
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&value).expect("serialisable")
+        );
+        return Ok(());
+    }
+    if layouts.is_empty() {
+        println!("No layouts are saved yet. Save one with: screen-side save NAME");
+        return Ok(());
+    }
+    for l in &layouts {
+        let fit = match fits(l) {
+            Some(true) => "these screens",
+            Some(false) => "other screens",
+            None => "",
+        };
+        let line = format!(
+            "  {:<20} {:<32} {:<5} {fit}",
+            l.name,
+            l.summary(),
+            if l.auto { "auto" } else { "" }
+        );
+        println!("{}", line.trim_end());
+    }
+    Ok(())
 }
 
 fn move_to(session: &Session, side: Side, args: MoveArgs, json: bool) -> Result<(), Error> {

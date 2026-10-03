@@ -237,3 +237,112 @@ fn version_and_help() {
             .and(predicate::str::contains("align")),
     );
 }
+
+#[test]
+fn save_apply_layouts_forget() {
+    let env = sample();
+    env.cmd()
+        .args(["save", "office", "--auto"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Saved 'office'"));
+    env.cmd().arg("right").assert().success();
+    env.cmd().args(["apply", "office"]).assert().success();
+    assert_eq!(at(&env.read(), "HDMI-1"), (0, 0));
+    env.cmd().arg("layouts").assert().success().stdout(
+        predicate::str::contains("office")
+            .and(predicate::str::contains("auto"))
+            .and(predicate::str::contains("these screens")),
+    );
+    let out = env.cmd().args(["layouts", "--json"]).output().unwrap();
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(v["schema"], 1);
+    assert_eq!(v["layouts"][0]["name"], "office");
+    assert_eq!(v["layouts"][0]["matches"], true);
+    env.cmd()
+        .arg("status")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Saved layout in force: office."));
+    env.cmd().args(["forget", "office"]).assert().success();
+    env.cmd()
+        .arg("layouts")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No layouts are saved yet."));
+}
+
+#[test]
+fn apply_for_other_screens_is_refused() {
+    let env = sample();
+    env.cmd().args(["save", "office"]).assert().success();
+    let mut file = env.read();
+    file.screens[1].identity.serial = "SOMEONE-ELSE".into();
+    env.write(&file);
+    env.cmd()
+        .args(["apply", "office"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("other screens"));
+}
+
+#[test]
+fn layout_name_with_a_quote() {
+    let env = sample();
+    env.cmd().args(["save", "Mum's desk"]).assert().success();
+    env.cmd().arg("right").assert().success();
+    env.cmd().args(["apply", "mum's desk"]).assert().success();
+    assert_eq!(at(&env.read(), "HDMI-1"), (0, 0));
+}
+
+#[test]
+fn corrupt_layouts_file() {
+    let env = sample();
+    std::fs::create_dir_all(env.config()).unwrap();
+    let path = env.config().join("layouts.json");
+    std::fs::write(&path, "{ not json").unwrap();
+    env.cmd().arg("left").assert().success();
+    env.cmd()
+        .arg("status")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Saved layout").not());
+    env.cmd()
+        .args(["save", "x"])
+        .assert()
+        .code(1)
+        .stderr(predicate::str::contains("layouts.json"));
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "{ not json");
+}
+
+#[test]
+fn layouts_and_forget_work_without_a_backend() {
+    let env = sample();
+    env.cmd()
+        .env("SCREEN_SIDE_BACKEND", "nope")
+        .arg("layouts")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No layouts are saved yet."));
+    env.cmd()
+        .env("SCREEN_SIDE_BACKEND", "nope")
+        .args(["forget", "office"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("no saved layout called 'office'"));
+}
+
+#[test]
+fn watch_rejects_a_bad_interval_and_explains_itself() {
+    let env = sample();
+    env.cmd()
+        .args(["watch", "--interval", "0"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("--interval"));
+    env.cmd()
+        .args(["watch", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("saved layouts"));
+}

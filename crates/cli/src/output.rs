@@ -3,6 +3,7 @@
 use screen_side_core::backend::{Applied, Backend, Capabilities};
 use screen_side_core::layout::{infer, Arrangement, Side};
 use screen_side_core::model::{Layout, State};
+use screen_side_core::watch::Event;
 use serde_json::{json, Value};
 
 fn relation(side: Side) -> &'static str {
@@ -220,4 +221,16 @@ pub fn moved_text(before: &State, layout: &Layout, applied: Applied, caps: Capab
         ));
     }
     out
+}
+
+/// A line for `watch`, or nothing for events not worth a line.
+pub fn event_text(event: &Event) -> Option<String> {
+    match event {
+        Event::ScreensChanged { screens } => {
+            Some(format!("Screens changed: {} switched on.", screens.len()))
+        }
+        Event::Moved => None,
+        Event::Applied { name } => Some(format!("Applied '{name}'.")),
+        Event::Failed { message } => Some(format!("Problem: {message}")),
+    }
 }
