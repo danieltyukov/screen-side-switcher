@@ -192,6 +192,8 @@ pub fn create(choice: &Choice) -> Result<Box<dyn Backend>, Error> {
         )))),
         #[cfg(windows)]
         Kind::Windows => Ok(Box::new(super::windows::Windows)),
+        #[cfg(target_os = "macos")]
+        Kind::Macos => Ok(Box::new(super::macos::Macos)),
         #[allow(unreachable_patterns)]
         other => Err(Error::Unsupported(format!(
             "The {} backend is not available on this operating system.",

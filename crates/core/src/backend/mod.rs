@@ -8,7 +8,10 @@ pub mod fake;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod gnome;
 pub mod kde;
+#[cfg(target_os = "macos")]
+pub mod macos;
 pub mod mutter;
+pub mod quartz;
 #[cfg(windows)]
 pub mod windows;
 pub mod wlroots;
