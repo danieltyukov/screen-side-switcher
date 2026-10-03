@@ -145,13 +145,7 @@ impl Backend for Windows {
         let (paths, mut modes) = query_raw()?;
         let described: Vec<CcdPath> = paths.iter().map(|p| describe(p, &modes)).collect();
         let state = to_state(&described);
-        let mut on: Vec<&str> = state.enabled().map(|s| s.id.as_str()).collect();
-        let mut named: Vec<&str> = layout.positions.iter().map(|p| p.id.as_str()).collect();
-        on.sort_unstable();
-        named.sort_unstable();
-        if on != named {
-            return Err(Error::Changed);
-        }
+        super::ensure_same_screens(&state, layout)?;
         for (path, info) in paths.iter().zip(&described) {
             let (Some(i), Some(p)) = (
                 source_mode_index(path, &modes),

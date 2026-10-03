@@ -112,13 +112,7 @@ pub fn parse(json: &str) -> Result<State, Error> {
 /// The wlr-randr arguments for `layout`, as one atomic configuration.
 pub fn apply_args(json: &str, layout: &Layout, verify: bool) -> Result<Vec<String>, Error> {
     let state = parse(json)?;
-    let mut on: Vec<&str> = state.enabled().map(|s| s.id.as_str()).collect();
-    let mut named: Vec<&str> = layout.positions.iter().map(|p| p.id.as_str()).collect();
-    on.sort_unstable();
-    named.sort_unstable();
-    if on != named {
-        return Err(Error::Changed);
-    }
+    super::ensure_same_screens(&state, layout)?;
     let mut args = Vec::new();
     for s in state.enabled() {
         let p = layout.position(&s.id).ok_or(Error::Changed)?;

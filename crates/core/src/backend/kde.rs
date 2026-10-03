@@ -140,13 +140,7 @@ pub fn parse(json: &str) -> Result<State, Error> {
 pub fn apply_args(json: &str, layout: &Layout) -> Result<Vec<String>, Error> {
     let config = load(json)?;
     let state = to_state(&config);
-    let mut on: Vec<&str> = state.enabled().map(|s| s.id.as_str()).collect();
-    let mut named: Vec<&str> = layout.positions.iter().map(|p| p.id.as_str()).collect();
-    on.sort_unstable();
-    named.sort_unstable();
-    if on != named {
-        return Err(Error::Changed);
-    }
+    super::ensure_same_screens(&state, layout)?;
     // Plasma 6 orders outputs by priority; Plasma 5 has a primary flag.
     let plasma6 = config.outputs.iter().any(|o| o.priority.is_some());
     let mut args: Vec<String> = state

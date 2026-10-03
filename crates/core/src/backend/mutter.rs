@@ -37,6 +37,9 @@ pub struct MutterMonitor {
     /// `color-mode` (HDR), reported by newer Mutter.
     #[serde(default)]
     pub color_mode: Option<u32>,
+    /// `rgb-range`, reported by newer Mutter.
+    #[serde(default)]
+    pub rgb_range: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -66,6 +69,7 @@ pub struct ApplyMonitor {
     pub mode: String,
     pub underscanning: Option<bool>,
     pub color_mode: Option<u32>,
+    pub rgb_range: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -159,17 +163,7 @@ impl MutterState {
     /// The logical monitors to hand to ApplyMonitorsConfig for `layout`,
     /// keeping each one's scale, transform, mode and mirrors.
     pub fn apply_config(&self, layout: &Layout) -> Result<Vec<ApplyLogical>, Error> {
-        let mut leads: Vec<&str> = self
-            .logical
-            .iter()
-            .filter_map(|l| l.connectors.first().map(String::as_str))
-            .collect();
-        let mut named: Vec<&str> = layout.positions.iter().map(|p| p.id.as_str()).collect();
-        leads.sort_unstable();
-        named.sort_unstable();
-        if leads != named {
-            return Err(Error::Changed);
-        }
+        super::ensure_same_screens(&self.to_state(), layout)?;
         self.logical
             .iter()
             .map(|l| {
@@ -188,6 +182,7 @@ impl MutterState {
                             mode: mode.id.clone(),
                             underscanning: monitor.and_then(|m| m.underscanning),
                             color_mode: monitor.and_then(|m| m.color_mode),
+                            rgb_range: monitor.and_then(|m| m.rgb_range),
                         })
                     })
                     .collect::<Result<_, Error>>()?;
@@ -303,6 +298,7 @@ mod tests {
                         mode: "2560x1600@60.000".into(),
                         underscanning: None,
                         color_mode: None,
+                        rgb_range: None,
                     }],
                 },
                 ApplyLogical {
@@ -318,6 +314,7 @@ mod tests {
                         mode: "2560x1440@59.951".into(),
                         underscanning: Some(true),
                         color_mode: Some(1),
+                        rgb_range: Some(2),
                     }],
                 },
             ]

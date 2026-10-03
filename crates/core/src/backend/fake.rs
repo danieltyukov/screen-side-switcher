@@ -151,18 +151,13 @@ impl Backend for Fake {
 
     fn apply(&self, layout: &Layout, mode: ApplyMode) -> Result<(), Error> {
         let mut file = self.load()?;
-        let mut enabled: Vec<&str> = file
-            .screens
-            .iter()
-            .filter(|s| s.enabled)
-            .map(|s| s.id.as_str())
-            .collect();
-        let mut named: Vec<&str> = layout.positions.iter().map(|p| p.id.as_str()).collect();
-        enabled.sort_unstable();
-        named.sort_unstable();
-        if enabled != named {
-            return Err(Error::Changed);
-        }
+        super::ensure_same_screens(
+            &State {
+                backend: "fake".into(),
+                screens: file.screens.clone(),
+            },
+            layout,
+        )?;
         if mode == ApplyMode::Verify {
             return Ok(());
         }

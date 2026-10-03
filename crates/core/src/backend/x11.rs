@@ -102,13 +102,7 @@ pub fn parse(text: &str) -> Result<State, Error> {
 /// resized once.
 pub fn apply_args(text: &str, layout: &Layout) -> Result<Vec<String>, Error> {
     let state = parse(text)?;
-    let mut on: Vec<&str> = state.enabled().map(|s| s.id.as_str()).collect();
-    let mut named: Vec<&str> = layout.positions.iter().map(|p| p.id.as_str()).collect();
-    on.sort_unstable();
-    named.sort_unstable();
-    if on != named {
-        return Err(Error::Changed);
-    }
+    super::ensure_same_screens(&state, layout)?;
     let mut args = Vec::new();
     for s in state.enabled() {
         let p = layout.position(&s.id).ok_or(Error::Changed)?;

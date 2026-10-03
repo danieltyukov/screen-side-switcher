@@ -122,6 +122,7 @@ impl Gnome {
                         display_name: text(&mprops, "display-name").unwrap_or_default(),
                         underscanning: flag(&mprops, "is-underscanning"),
                         color_mode: mprops.get("color-mode").and_then(|v| u32::try_from(v).ok()),
+                        rgb_range: mprops.get("rgb-range").and_then(|v| u32::try_from(v).ok()),
                         modes: modes
                             .into_iter()
                             .map(
@@ -202,6 +203,9 @@ impl Backend for Gnome {
                         }
                         if let Some(mode) = m.color_mode {
                             props.insert("color-mode", Value::from(mode));
+                        }
+                        if let Some(range) = m.rgb_range {
+                            props.insert("rgb-range", Value::from(range));
                         }
                         (m.connector, m.mode, props)
                     })

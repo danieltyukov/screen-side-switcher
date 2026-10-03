@@ -44,7 +44,8 @@
         }
       ],
       "underscanning": true,
-      "color_mode": 1
+      "color_mode": 1,
+      "rgb_range": 2
     }
   ],
   "logical": [

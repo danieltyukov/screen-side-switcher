@@ -89,13 +89,7 @@ impl Backend for Macos {
 
     fn apply(&self, layout: &Layout, mode: ApplyMode) -> Result<(), Error> {
         let state = to_state(&displays()?);
-        let mut on: Vec<&str> = state.enabled().map(|s| s.id.as_str()).collect();
-        let mut named: Vec<&str> = layout.positions.iter().map(|p| p.id.as_str()).collect();
-        on.sort_unstable();
-        named.sort_unstable();
-        if on != named {
-            return Err(Error::Changed);
-        }
+        super::ensure_same_screens(&state, layout)?;
         let main = CGDisplay::main();
         let config = main
             .begin_configuration()
