@@ -57,8 +57,9 @@ pub fn current(app: &AppHandle) -> AppState {
             .or_else(|| hotkey_error.clone())
             .or_else(|| notice.clone()),
     };
-    let Some(backend) = shared.backend.as_ref() else {
-        return app_state(base(shared.detect_error.clone()));
+    let backend = match shared.backend.get() {
+        Ok(backend) => backend,
+        Err(e) => return app_state(base(Some(e))),
     };
     match backend.query() {
         Ok(state) => app_state(ViewInput {
@@ -88,10 +89,7 @@ pub fn change(
     f: impl FnOnce(&Screens) -> Result<Arrangement, Error>,
 ) -> Result<(), String> {
     let shared = app.state::<Shared>();
-    let backend = shared
-        .backend
-        .as_ref()
-        .ok_or_else(|| shared.detect_error.clone().unwrap_or_default())?;
+    let backend = shared.backend.get()?;
     let state = backend.query().map_err(text)?;
     let arr = f(&state).map_err(text)?;
     let mode = match from {
@@ -145,11 +143,7 @@ pub fn set_primary(
     shared: State<Shared>,
     screen: String,
 ) -> Result<AppState, String> {
-    if !shared
-        .backend
-        .as_ref()
-        .is_some_and(|b| b.capabilities().primary)
-    {
+    if !shared.backend.get().is_ok_and(|b| b.capabilities().primary) {
         return Err("This desktop has no primary screen to set.".into());
     }
     change(&app, From::Window, |state| {
@@ -165,10 +159,7 @@ pub fn save_layout(
     name: String,
     auto: bool,
 ) -> Result<AppState, String> {
-    let backend = shared
-        .backend
-        .as_ref()
-        .ok_or("There are no screens to save.")?;
+    let backend = shared.backend.get()?;
     let state = backend.query().map_err(text)?;
     let arr = screen_side_core::layout::to_save(&state).map_err(text)?;
     shared

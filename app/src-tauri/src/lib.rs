@@ -23,10 +23,56 @@ use crate::args::Action;
 
 pub const MAIN_WINDOW: &str = "main";
 
+type Detect = Box<dyn Fn() -> Result<Box<dyn Backend>, screen_side_core::Error> + Send + Sync>;
+
+/// The backend, found on first use and kept. A session started at login can
+/// come up before its display server is reachable, so a failed detection is
+/// tried again the next time anything asks, instead of lasting all session.
+pub struct BackendSlot {
+    current: Mutex<Option<Arc<dyn Backend>>>,
+    error: Mutex<Option<String>>,
+    detect: Detect,
+}
+
+impl BackendSlot {
+    pub fn new(detect: Detect) -> BackendSlot {
+        let slot = BackendSlot {
+            current: Mutex::new(None),
+            error: Mutex::new(None),
+            detect,
+        };
+        let _ = slot.get();
+        slot
+    }
+
+    pub fn get(&self) -> Result<Arc<dyn Backend>, String> {
+        let mut current = self.current.lock().unwrap();
+        if let Some(backend) = current.as_ref() {
+            return Ok(backend.clone());
+        }
+        match (self.detect)() {
+            Ok(backend) => {
+                let backend: Arc<dyn Backend> = Arc::from(backend);
+                *current = Some(backend.clone());
+                *self.error.lock().unwrap() = None;
+                Ok(backend)
+            }
+            Err(e) => {
+                *self.error.lock().unwrap() = Some(e.to_string());
+                Err(e.to_string())
+            }
+        }
+    }
+
+    /// Why there is no backend, if there is none yet.
+    pub fn error(&self) -> Option<String> {
+        self.error.lock().unwrap().clone()
+    }
+}
+
 /// What every command, the tray and the watcher share.
 pub struct Shared {
-    pub backend: Option<Arc<dyn Backend>>,
-    pub detect_error: Option<String>,
+    pub backend: BackendSlot,
     pub store: Store,
     pub desktop: Desktop,
     /// A global shortcut that could not be registered, shown in the window.
@@ -38,15 +84,11 @@ pub struct Shared {
 
 impl Shared {
     fn new() -> Shared {
-        let (backend, detect_error) = match detect() {
-            Ok((backend, _)) => (Some(Arc::from(backend)), None),
-            Err(e) => (None, Some(e.to_string())),
-        };
+        let backend = BackendSlot::new(Box::new(|| detect().map(|(backend, _)| backend)));
         let store =
             Store::open().unwrap_or_else(|_| Store::at(std::env::temp_dir().join("screen-side")));
         Shared {
             backend,
-            detect_error,
             store,
             desktop: shortcut::desktop(&SystemProbe),
             hotkey_error: Mutex::new(None),
@@ -214,8 +256,9 @@ mod tests {
     fn a_background_failure_is_shown_once() {
         let dir = std::env::temp_dir().join("screen-side-shared-test");
         let shared = Shared {
-            backend: None,
-            detect_error: None,
+            backend: BackendSlot::new(Box::new(|| {
+                Err(screen_side_core::Error::NoBackend("none in tests".into()))
+            })),
             store: Store::at(&dir),
             desktop: Desktop::OtherX11,
             hotkey_error: Mutex::new(None),
@@ -226,5 +269,27 @@ mod tests {
         shared.note("A later problem");
         assert_eq!(shared.take_notice().as_deref(), Some("A later problem"));
         assert_eq!(shared.take_notice(), None);
+    }
+
+    #[test]
+    fn a_backend_missing_at_login_is_found_later() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let calls = Arc::new(AtomicUsize::new(0));
+        let seen = calls.clone();
+        let slot = BackendSlot::new(Box::new(move || {
+            // The session bus is not up for the first try, as at login.
+            if seen.fetch_add(1, Ordering::SeqCst) == 0 {
+                Err(screen_side_core::Error::NoBackend("no session yet".into()))
+            } else {
+                Ok(Box::new(screen_side_core::backend::fake::Fake::in_memory(
+                    screen_side_core::backend::fake::FakeFile::sample(),
+                )))
+            }
+        }));
+        assert_eq!(slot.error().as_deref(), Some("no session yet"));
+        assert_eq!(slot.get().unwrap().name(), "fake");
+        assert!(slot.error().is_none());
+        slot.get().unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 2, "found once, then kept");
     }
 }

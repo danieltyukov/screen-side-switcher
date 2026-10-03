@@ -51,7 +51,7 @@ pub fn refresh(app: &AppHandle) {
 
 fn menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     let shared = app.state::<Shared>();
-    let state = shared.backend.as_ref().and_then(|b| b.query().ok());
+    let state = shared.backend.get().ok().and_then(|b| b.query().ok());
     let can_move = state.as_ref().is_some_and(|s| s.enabled().count() >= 2);
     let side = state.as_ref().and_then(infer).and_then(|a| a.common_side());
     let item = |s: Side, label: &str| {
