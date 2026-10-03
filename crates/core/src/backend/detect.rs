@@ -85,8 +85,15 @@ impl Probe for SystemProbe {
         crate::run::on_path(program)
     }
     fn bus_has_owner(&self, name: &str) -> bool {
-        let _ = name;
-        false
+        #[cfg(all(unix, not(target_os = "macos")))]
+        {
+            super::gnome::bus_has_owner(name)
+        }
+        #[cfg(not(all(unix, not(target_os = "macos"))))]
+        {
+            let _ = name;
+            false
+        }
     }
 }
 
@@ -167,6 +174,11 @@ pub fn choose(probe: &dyn Probe) -> Result<Choice, Error> {
 pub fn create(choice: &Choice) -> Result<Box<dyn Backend>, Error> {
     match choice.kind {
         Kind::Fake => Ok(Box::new(super::fake::Fake::from_env()?)),
+        #[cfg(all(unix, not(target_os = "macos")))]
+        Kind::Gnome => Ok(Box::new(super::gnome::Gnome::connect(
+            choice.bus_name.as_deref().unwrap_or(MUTTER),
+        )?)),
+        #[allow(unreachable_patterns)]
         other => Err(Error::Unsupported(format!(
             "The {} backend is not available on this operating system.",
             other.as_str()

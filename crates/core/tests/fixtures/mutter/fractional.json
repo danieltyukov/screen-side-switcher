@@ -1,0 +1,90 @@
+{
+  "serial": 3,
+  "layout_mode": 1,
+  "supports_changing_layout_mode": true,
+  "monitors": [
+    {
+      "connector": "eDP-1",
+      "vendor": "BOE",
+      "product": "0x095f",
+      "serial": "",
+      "display_name": "Built-in display",
+      "builtin": true,
+      "modes": [
+        {
+          "id": "2560x1600@60.000",
+          "width": 2560,
+          "height": 1600,
+          "current": true,
+          "preferred": true
+        }
+      ]
+    },
+    {
+      "connector": "HDMI-1",
+      "vendor": "GSM",
+      "product": "LG HDR 4K",
+      "serial": "",
+      "display_name": "LG Electronics 27\"",
+      "builtin": false,
+      "modes": [
+        {
+          "id": "1920x1080@60.000",
+          "width": 1920,
+          "height": 1080,
+          "current": true,
+          "preferred": true
+        }
+      ]
+    },
+    {
+      "connector": "DP-1",
+      "vendor": "DEL",
+      "product": "DELL P2422H",
+      "serial": "XYZ",
+      "display_name": "Dell Inc. 24\"",
+      "builtin": false,
+      "modes": [
+        {
+          "id": "1920x1080@60.000",
+          "width": 1920,
+          "height": 1080,
+          "current": true,
+          "preferred": true
+        }
+      ]
+    }
+  ],
+  "logical": [
+    {
+      "x": 0,
+      "y": 0,
+      "scale": 1.5,
+      "transform": 0,
+      "primary": true,
+      "connectors": [
+        "eDP-1"
+      ]
+    },
+    {
+      "x": 1707,
+      "y": 0,
+      "scale": 1.25,
+      "transform": 0,
+      "primary": false,
+      "connectors": [
+        "HDMI-1"
+      ]
+    },
+    {
+      "x": 3243,
+      "y": 0,
+      "scale": 1.0,
+      "transform": 1,
+      "primary": false,
+      "connectors": [
+        "DP-1"
+      ]
+    }
+  ]
+}

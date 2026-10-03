@@ -1,0 +1,70 @@
+{
+  "serial": 7,
+  "layout_mode": 2,
+  "supports_changing_layout_mode": false,
+  "monitors": [
+    {
+      "connector": "eDP-1",
+      "vendor": "BOE",
+      "product": "0x095f",
+      "serial": "",
+      "display_name": "Built-in display",
+      "builtin": true,
+      "modes": [
+        {
+          "id": "2560x1600@60.000",
+          "width": 2560,
+          "height": 1600,
+          "current": true,
+          "preferred": true
+        }
+      ]
+    },
+    {
+      "connector": "HDMI-1",
+      "vendor": "DEL",
+      "product": "DELL U2723QE",
+      "serial": "ABC123",
+      "display_name": "Dell Inc. 27\"",
+      "builtin": false,
+      "modes": [
+        {
+          "id": "2560x1440@59.951",
+          "width": 2560,
+          "height": 1440,
+          "current": true,
+          "preferred": true
+        },
+        {
+          "id": "1920x1080@60.000",
+          "width": 1920,
+          "height": 1080,
+          "current": false,
+          "preferred": false
+        }
+      ]
+    }
+  ],
+  "logical": [
+    {
+      "x": 2560,
+      "y": 320,
+      "scale": 2.0,
+      "transform": 0,
+      "primary": true,
+      "connectors": [
+        "eDP-1"
+      ]
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "scale": 1.0,
+      "transform": 0,
+      "primary": false,
+      "connectors": [
+        "HDMI-1"
+      ]
+    }
+  ]
+}
