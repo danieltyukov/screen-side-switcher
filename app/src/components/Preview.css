@@ -56,10 +56,20 @@
   pointer-events: none;
 }
 
-.preview .edge {
-  stroke: var(--pointer);
+.preview .edge,
+.preview .edge-under {
   stroke-linecap: round;
   pointer-events: none;
+}
+
+.preview .edge {
+  stroke: var(--pointer);
+}
+
+/* Gives the yellow an edge of its own on the light ground. */
+.preview .edge-under {
+  stroke: var(--pointer-ink);
+  opacity: 0.55;
 }
 
 .preview .pointer {
@@ -68,8 +78,8 @@
 }
 
 .preview .cursor {
-  fill: var(--surface);
-  stroke: var(--pointer-ink);
+  fill: var(--cursor);
+  stroke: var(--cursor-ink);
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
   animation: cross 2.4s var(--ease) infinite;
@@ -79,11 +89,11 @@
 @keyframes cross {
   0%,
   20% {
-    translate: 0 0;
+    translate: var(--from-x) var(--from-y);
   }
   60%,
   100% {
-    translate: var(--travel-x) var(--travel-y);
+    translate: var(--to-x) var(--to-y);
   }
 }
 

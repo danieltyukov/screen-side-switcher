@@ -28,6 +28,9 @@
   /* The edge the pointer crosses, and the pointer itself. Nothing else. */
   --pointer: #ffd45e;
   --pointer-ink: #10213a;
+  /* The cursor glyph looks like a real pointer in both themes. */
+  --cursor: #ffffff;
+  --cursor-ink: #10213a;
   /* Screens in the preview. */
   --glass: #dbe6f2;
   --glass-primary: #c6dbf2;

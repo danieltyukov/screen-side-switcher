@@ -180,25 +180,23 @@ export function Preview({ screens, arrangement, selected, onSelect }: Props) {
           );
         })}
         {lit.map(({ id, edge }) => (
-          <line
-            key={id}
-            data-edge={id}
-            className="edge"
-            x1={edge.x1}
-            y1={edge.y1}
-            x2={edge.x2}
-            y2={edge.y2}
-            strokeWidth={unit * 0.7}
-          />
+          <g key={id} data-edge={id}>
+            <line className="edge-under" x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2} strokeWidth={unit * 1.6} />
+            <line className="edge" x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2} strokeWidth={unit * 0.9} />
+          </g>
         ))}
         {pointerEdge && (
           <g
             data-pointer=""
             className="pointer"
             style={{
-              transform: `translate(${(pointerEdge.x1 + pointerEdge.x2) / 2 - pointerEdge.dx * unit * 2.4}px, ${(pointerEdge.y1 + pointerEdge.y2) / 2 - pointerEdge.dy * unit * 2.4}px)`,
-              ['--travel-x' as string]: `${pointerEdge.dx * unit * 4.2}px`,
-              ['--travel-y' as string]: `${pointerEdge.dy * unit * 4.2}px`,
+              // At rest the tip sits on the edge; with motion it starts just
+              // before it and travels across.
+              transform: `translate(${(pointerEdge.x1 + pointerEdge.x2) / 2}px, ${(pointerEdge.y1 + pointerEdge.y2) / 2}px)`,
+              ['--from-x' as string]: `${-pointerEdge.dx * unit * 2.2}px`,
+              ['--from-y' as string]: `${-pointerEdge.dy * unit * 2.2}px`,
+              ['--to-x' as string]: `${pointerEdge.dx * unit * 2.2}px`,
+              ['--to-y' as string]: `${pointerEdge.dy * unit * 2.2}px`,
             }}
           >
             <path
