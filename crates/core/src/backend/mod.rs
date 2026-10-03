@@ -6,6 +6,7 @@ pub mod detect;
 pub mod fake;
 #[cfg(all(unix, not(target_os = "macos")))]
 pub mod gnome;
+pub mod kde;
 pub mod mutter;
 
 use serde::{Deserialize, Serialize};

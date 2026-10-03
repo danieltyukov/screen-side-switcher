@@ -178,6 +178,10 @@ pub fn create(choice: &Choice) -> Result<Box<dyn Backend>, Error> {
         Kind::Gnome => Ok(Box::new(super::gnome::Gnome::connect(
             choice.bus_name.as_deref().unwrap_or(MUTTER),
         )?)),
+        #[cfg(all(unix, not(target_os = "macos")))]
+        Kind::Kde => Ok(Box::new(super::kde::Kde::new(Box::new(
+            crate::run::SystemRunner,
+        )))),
         #[allow(unreachable_patterns)]
         other => Err(Error::Unsupported(format!(
             "The {} backend is not available on this operating system.",
