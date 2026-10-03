@@ -1,0 +1,81 @@
+.layouts {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.layouts .empty {
+  margin: 0;
+  color: var(--muted);
+}
+
+.layout-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.layout {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.layout.other .layout-name {
+  color: var(--muted);
+}
+
+.layout-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.layout-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+}
+
+.layout-summary {
+  color: var(--muted);
+  font-size: var(--text-s);
+}
+
+.badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent-tint);
+  color: var(--accent);
+  font-size: var(--text-s);
+  font-weight: 600;
+}
+
+.layout-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.save {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.save h2 {
+  margin: 0;
+  font-size: var(--text-m);
+}
+
+.save .hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-s);
+}
