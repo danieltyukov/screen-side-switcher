@@ -1,0 +1,224 @@
+name: CI
+
+# Standard GitHub-hosted runners only: free and unmetered on a public
+# repository. Pushes to main and every pull request; a branch without a pull
+# request can be run from the Actions tab.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: Core and command line
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Windows and macOS targets so the two platform backends are type-checked
+      # on every pull request, without waiting for their runners.
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: x86_64-pc-windows-gnu, aarch64-apple-darwin
+
+      - name: Cache the Rust build
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-rust-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-rust-
+
+      # The whole workspace, including the Tauri shell; formatting compiles nothing.
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy -p screen-side-core -p screen-side --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test -p screen-side-core -p screen-side
+
+      - name: Type-check for Windows
+        run: cargo clippy -p screen-side-core -p screen-side --target x86_64-pc-windows-gnu --all-targets -- -D warnings
+
+      - name: Type-check for macOS
+        run: cargo clippy -p screen-side-core -p screen-side --target aarch64-apple-darwin --all-targets -- -D warnings
+
+      - name: Shell scripts
+        run: shellcheck site/public/install.sh scripts/*.sh
+
+      # Builds the CLI, packs it like a release and runs install.sh against it,
+      # including the removal of a 1.0 install and a tampered archive.
+      - name: Installer
+        run: sh scripts/test-install.sh
+
+  native:
+    name: Native / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache the Rust build
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-native-${{ matrix.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-native-${{ matrix.os }}-
+
+      - name: Tests
+        run: cargo test -p screen-side-core -p screen-side
+
+      - name: Build the command line tool
+        run: cargo build --release -p screen-side
+
+      # The real backend against the runner's display: a query and a check
+      # that changes nothing (or, where the system cannot check, re-applies
+      # the arrangement already in force).
+      - name: Real display system
+        env:
+          SCREEN_SIDE_REAL: '1'
+        run: cargo test -p screen-side-core --test real -- --nocapture
+
+      - name: Doctor
+        run: target/release/screen-side doctor
+
+      - name: Status as JSON
+        run: target/release/screen-side status --json
+
+      - name: Installer (macOS)
+        if: runner.os == 'macOS'
+        run: sh scripts/test-install.sh
+
+      - name: Installer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $release = Join-Path $env:RUNNER_TEMP 'release'
+          $stage = Join-Path $env:RUNNER_TEMP 'stage'
+          New-Item -ItemType Directory -Force -Path $release, $stage | Out-Null
+          Copy-Item target/release/screen-side.exe, LICENSE, README.md $stage
+          $zip = Join-Path $release 'screen-side-windows-x64.zip'
+          Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip
+          $hash = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLower()
+          "$hash  screen-side-windows-x64.zip" | Set-Content (Join-Path $release 'SHA256SUMS')
+          $env:SCREEN_SIDE_ARCHIVE = $zip
+          $env:SCREEN_SIDE_INSTALL_DIR = Join-Path $env:RUNNER_TEMP 'installed'
+          ./site/public/install.ps1
+          $version = & (Join-Path $env:SCREEN_SIDE_INSTALL_DIR 'screen-side.exe') --version
+          if ($version -notmatch ' 2\.') { throw "unexpected version: $version" }
+          Write-Host "ok: $version"
+
+  shell:
+    name: App shell
+    # 22.04, the release build's base, so the shell is checked against the
+    # same WebKitGTK the deb and AppImage are built with.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install the WebKitGTK toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Cache the Rust build
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-shell-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-shell-
+
+      - run: npm ci
+
+      # tauri::generate_context! embeds the built interface.
+      - name: Build the interface
+        run: npm run build -w app
+
+      - name: Clippy
+        run: cargo clippy -p screen-side-gui --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test -p screen-side-gui
+
+  web:
+    name: Interface and site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build the interface
+        run: npm run build -w app
+
+      - name: Build the site
+        run: npm run build -w site
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright
+        env:
+          CI: '1'
+        run: npm run test:e2e
+
+      - name: Upload the Playwright reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            app/playwright-report/
+            app/test-results/
+            site/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
