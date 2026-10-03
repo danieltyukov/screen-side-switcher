@@ -413,3 +413,17 @@ fn one_screen_has_no_arrangement_in_json() {
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(v["arrangement"], serde_json::Value::Null);
 }
+
+#[test]
+fn saving_overlapping_screens_is_refused() {
+    let mut file = FakeFile::sample();
+    file.screens[0].rect.x = 0;
+    file.screens[0].rect.y = 0;
+    let env = Env::new(file);
+    env.cmd()
+        .args(["save", "office"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("Pick a side"));
+    assert!(!env.config().join("layouts.json").exists());
+}

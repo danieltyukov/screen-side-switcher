@@ -145,3 +145,9 @@ describe('mock backend, unusual states', () => {
     expect(state.layoutsError).toBe('/x/layouts.json could not be read');
   });
 });
+
+describe('mock backend, saving', () => {
+  it('refuses to save overlapping screens, like the real one', async () => {
+    await expect(createMock({ screens: 2, custom: true }).saveLayout('office', false)).rejects.toThrow(/Pick a side/);
+  });
+});

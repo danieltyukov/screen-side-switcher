@@ -345,6 +345,11 @@ export function createMock(options: MockOptions = {}): MockBackend {
       run(() => {
         const trimmed = name.trim();
         if (!trimmed || trimmed.length > 64) throw new Error('A layout name needs 1 to 64 characters and no control characters.');
+        if (custom) {
+          throw new Error(
+            'The screens overlap or line up in no named way, so there is nothing Screen Side can save. Pick a side and an alignment first, then save.',
+          );
+        }
         const saved: SavedLayout = { name: trimmed, auto, screens: fingerprint(), arrangement: structuredClone(need()) };
         const at = layouts.findIndex((l) => l.name.toLowerCase() === trimmed.toLowerCase());
         layouts = at >= 0 ? layouts.map((l, i) => (i === at ? saved : l)) : [...layouts, saved];

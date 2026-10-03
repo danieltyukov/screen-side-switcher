@@ -256,7 +256,7 @@ fn run(cli: Cli) -> Result<(), Error> {
             finish(&session, &arr, apply.mode(), cli.json)
         }
         Command::Save { name, auto } => {
-            let arr = baseline(&session.state)?;
+            let arr = screen_side_core::layout::to_save(&session.state)?;
             let saved = capture(&name, &session.state, &arr, auto)?;
             let shown = saved.name.clone();
             session.store.put(saved)?;

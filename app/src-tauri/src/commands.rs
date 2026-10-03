@@ -170,7 +170,7 @@ pub fn save_layout(
         .as_ref()
         .ok_or("There are no screens to save.")?;
     let state = backend.query().map_err(text)?;
-    let arr = baseline(&state).map_err(text)?;
+    let arr = screen_side_core::layout::to_save(&state).map_err(text)?;
     shared
         .store
         .put(capture(&name, &state, &arr, auto).map_err(text)?)

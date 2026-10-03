@@ -396,6 +396,24 @@ pub fn baseline(state: &State) -> Result<Arrangement, LayoutError> {
     })
 }
 
+/// The arrangement to save: the one in force, which must be one Screen Side
+/// can describe. Saving a fallback instead would put back something other
+/// than what was on screen.
+pub fn to_save(state: &State) -> Result<Arrangement, crate::Error> {
+    match state.enabled().count() {
+        0 => return Err(LayoutError::NoScreens.into()),
+        1 => return Err(LayoutError::OnlyOneScreen.into()),
+        _ => {}
+    }
+    match infer(state) {
+        Some(arr) if arr.aligned => Ok(arr),
+        _ => Err(crate::Error::Usage(
+            "The screens overlap or line up in no named way, so there is nothing Screen Side can save. Pick a side and an alignment first, then save."
+                .into(),
+        )),
+    }
+}
+
 impl Arrangement {
     pub fn side_of(&self, id: &str) -> Option<Side> {
         self.placements
@@ -981,5 +999,25 @@ pub(crate) mod tests {
         let mut lid = laptop(1280, 800);
         lid.enabled = false;
         assert_eq!(infer(&state(vec![lid, screen("A", 1920, 1080)])), None);
+    }
+
+    #[test]
+    fn only_an_arrangement_screen_side_can_describe_is_saved() {
+        let side_by_side = state(vec![
+            placed(laptop(1280, 800), 2560, 320),
+            placed(screen("A", 2560, 1440), 0, 0),
+        ]);
+        assert!(to_save(&side_by_side).is_ok());
+        let overlapping = state(vec![
+            placed(laptop(1280, 800), 0, 0),
+            placed(screen("A", 1920, 1080), 0, 0),
+        ]);
+        assert!(to_save(&overlapping).is_err());
+        let custom = state(vec![
+            placed(laptop(1280, 800), 0, 100),
+            placed(screen("A", 1920, 1080), 1280, 0),
+        ]);
+        let message = to_save(&custom).unwrap_err().to_string();
+        assert!(message.contains("Pick a side"), "{message}");
     }
 }
