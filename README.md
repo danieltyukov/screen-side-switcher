@@ -50,7 +50,8 @@ cargo install --git https://github.com/danieltyukov/screen-side-switcher screen-
 The first line is for macOS and Linux, the second for Windows. Both check the
 download against the release's `SHA256SUMS`. Coming from Screen Side 1.0, the
 app and `install.sh` remove the old Python install from `~/.local` the first
-time they run.
+time they run. A 1.0 install made with `./install.sh --system` lives in
+`/usr/local`; remove it with 1.0's `sudo ./uninstall.sh --system`.
 
 ## Using it
 
