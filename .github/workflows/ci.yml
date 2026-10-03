@@ -111,6 +111,20 @@ jobs:
       - name: Status as JSON
         run: target/release/screen-side status --json
 
+      # The app shell has code only these systems compile (start at login,
+      # the tray icon), and the Linux job cannot check it.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Check the app shell
+        shell: bash
+        run: |
+          npm ci
+          npm run build -w app
+          cargo clippy -p screen-side-gui -- -D warnings
+
       - name: Installer (macOS)
         if: runner.os == 'macOS'
         run: sh scripts/test-install.sh

@@ -3,6 +3,7 @@
 //! goes through core; this crate decides when and shows the result.
 
 pub mod args;
+mod autostart;
 mod commands;
 mod headless;
 mod hotkey;
@@ -17,7 +18,6 @@ use screen_side_core::backend::{detect, Backend, SystemProbe};
 use screen_side_core::shortcut::{self, Desktop};
 use screen_side_core::store::Store;
 use tauri::{AppHandle, Manager, WindowEvent};
-use tauri_plugin_autostart::MacosLauncher;
 
 use crate::args::Action;
 
@@ -138,14 +138,17 @@ fn start(background_launch: bool) {
     let shared = Shared::new();
     let settings = shared.store.settings().unwrap_or_default();
 
-    tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+    let builder =
+        tauri::Builder::default().plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             show_main(app)
-        }))
-        .plugin(tauri_plugin_autostart::init(
-            MacosLauncher::LaunchAgent,
-            Some(vec!["--background"]),
-        ))
+        }));
+    // Start at login: a LaunchAgent on macOS; Linux and Windows are in autostart.rs.
+    #[cfg(target_os = "macos")]
+    let builder = builder.plugin(tauri_plugin_autostart::init(
+        tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+        Some(vec!["--background"]),
+    ));
+    builder
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())

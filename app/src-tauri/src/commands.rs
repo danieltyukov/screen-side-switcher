@@ -14,10 +14,9 @@ use screen_side_core::store::{capture, resolve};
 use screen_side_core::Error;
 use serde::{Deserialize, Deserializer};
 use tauri::{AppHandle, Emitter, Manager, State};
-use tauri_plugin_autostart::ManagerExt;
 
 use crate::view::{self, app_state, AppState, ViewInput};
-use crate::{hotkey, tray, Shared};
+use crate::{autostart, hotkey, tray, Shared};
 
 fn text(e: impl Display) -> String {
     e.to_string()
@@ -51,7 +50,7 @@ pub fn current(app: &AppHandle) -> AppState {
         backend: None,
         layouts: shared.store.layouts().map_err(text),
         settings: &settings,
-        auto_start: app.autolaunch().is_enabled().unwrap_or(false),
+        auto_start: autostart::is_enabled(app),
         shortcut: support.clone(),
         cli_path: cli_path(),
         error: error
@@ -236,13 +235,7 @@ pub fn update_settings(
 ) -> Result<AppState, String> {
     let mut settings = shared.store.settings().map_err(text)?;
     if let Some(start) = patch.auto_start {
-        let manager = app.autolaunch();
-        let done = if start {
-            manager.enable()
-        } else {
-            manager.disable()
-        };
-        done.map_err(|e| format!("Could not change start at login: {e}"))?;
+        autostart::set(&app, start)?;
     }
     if let Some(background) = patch.background {
         settings.background = background;
