@@ -19,7 +19,7 @@ thiserror = "2"
 zbus = "5"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.61", features = ["Win32_Devices_Display", "Win32_Foundation", "Win32_Graphics_Gdi"] }
+windows = { version = "0.62", features = ["Win32_Devices_Display", "Win32_Foundation", "Win32_Graphics_Gdi"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-graphics = "0.25"
