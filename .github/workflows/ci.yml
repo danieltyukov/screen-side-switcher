@@ -153,7 +153,7 @@ jobs:
           if ($version -notmatch ' 2\.') { throw "unexpected version: $version" }
           $key = Get-Item 'HKCU:\Environment'
           $after = $key.GetValue('Path', '', 'DoNotExpandEnvironmentNames')
-          if (-not $after.Contains($marker)) { throw "the installer expanded or dropped $marker: $after" }
+          if (-not $after.Contains($marker)) { throw "the installer expanded or dropped ${marker}: $after" }
           if (-not $after.Contains($env:SCREEN_SIDE_INSTALL_DIR)) { throw "the install folder is not on the user PATH: $after" }
           if ($key.GetValueKind('Path') -ne 'ExpandString') { throw "the user PATH is no longer an expandable string" }
           Write-Host "ok: $version, user PATH intact"
