@@ -4,10 +4,12 @@
 
 <h1 align="center">Screen Side</h1>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/img/app-dark.png">
-  <img src="docs/img/app-light.png" width="420" alt="The Screen Side window: a monitor drawn left of a laptop with a second monitor above, the edge between the monitor and the laptop lit in yellow, and buttons for the side, the alignment and the primary screen.">
-</picture>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/img/app-dark.png">
+    <img src="docs/img/app-light.png" width="420" alt="The Screen Side window: a monitor drawn left of a laptop with a second monitor above, the edge between the monitor and the laptop lit in yellow, and buttons for the side, the alignment and the primary screen.">
+  </picture>
+</p>
 
 Screen Side tells your computer which side of the laptop your external monitor
 stands on, so the pointer leaves through the edge that faces it. Click a side,
