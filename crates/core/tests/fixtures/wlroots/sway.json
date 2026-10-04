@@ -1,0 +1,86 @@
+[
+  {
+    "name": "eDP-1",
+    "description": "BOE 0x095F (eDP-1)",
+    "make": "BOE",
+    "model": "0x095F",
+    "serial": null,
+    "physical_size": {
+      "width": 600,
+      "height": 340
+    },
+    "enabled": true,
+    "modes": [
+      {
+        "width": 2560,
+        "height": 1600,
+        "refresh": 60.0,
+        "preferred": true,
+        "current": true
+      }
+    ],
+    "position": {
+      "x": 0,
+      "y": 0
+    },
+    "transform": "normal",
+    "scale": 1.5,
+    "adaptive_sync": false
+  },
+  {
+    "name": "DP-1",
+    "description": "Dell Inc. DELL U2723QE (DP-1)",
+    "make": "Dell Inc.",
+    "model": "DELL U2723QE",
+    "serial": "ABC123",
+    "physical_size": {
+      "width": 600,
+      "height": 340
+    },
+    "enabled": true,
+    "modes": [
+      {
+        "width": 3840,
+        "height": 2160,
+        "refresh": 60.0,
+        "preferred": true,
+        "current": true
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "refresh": 60.0,
+        "preferred": false,
+        "current": false
+      }
+    ],
+    "position": {
+      "x": 1706,
+      "y": 0
+    },
+    "transform": "normal",
+    "scale": 1.5,
+    "adaptive_sync": false
+  },
+  {
+    "name": "HDMI-A-1",
+    "description": "Goldstar Company Ltd LG HDR 4K (HDMI-A-1)",
+    "make": "Goldstar Company Ltd",
+    "model": "LG HDR 4K",
+    "serial": "",
+    "physical_size": {
+      "width": 600,
+      "height": 340
+    },
+    "enabled": false,
+    "modes": [
+      {
+        "width": 1920,
+        "height": 1080,
+        "refresh": 60.0,
+        "preferred": true,
+        "current": false
+      }
+    ]
+  }
+]

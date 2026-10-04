@@ -1,0 +1,95 @@
+.settings {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.settings section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.settings h2 {
+  margin: 0;
+  font-size: var(--text-m);
+}
+
+.settings p {
+  margin: 0;
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.setting-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+}
+
+.setting-desc {
+  color: var(--muted);
+  font-size: var(--text-s);
+}
+
+.shortcut {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.shortcut pre {
+  width: 100%;
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-s);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.shortcut-row,
+.help-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.recorder {
+  min-width: 160px;
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.recorder.recording {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.about {
+  color: var(--muted);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: var(--text-s);
+}

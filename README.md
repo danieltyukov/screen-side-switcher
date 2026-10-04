@@ -1,98 +1,133 @@
-# Screen Side
+<p align="center">
+  <img src="app/icon-source.svg" width="112" alt="The Screen Side icon: a monitor on a stand beside a laptop, with the edge between them in yellow.">
+</p>
 
-Pick which side of your laptop screen an external monitor sits on, from a small
-GTK4 app or one shell command. The point is the pointer: if the monitor is
-placed on the left, the pointer leaves the left edge of the laptop screen and
-arrives at the right edge of the external screen.
+<h1 align="center">Screen Side</h1>
 
-GNOME Settings can already do this by dragging boxes around. This exists because
-dragging is slow when you switch desks often, and because the drag has to be
-redone every time you sit at a different setup.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/app-dark.png">
+  <img src="docs/img/app-light.png" width="420" alt="The Screen Side window: a monitor drawn left of a laptop with a second monitor above, the edge between the monitor and the laptop lit in yellow, and buttons for the side, the alignment and the primary screen.">
+</picture>
 
-Works on Wayland and on X11, because it talks to Mutter over D-Bus rather than
-to xrandr.
+Screen Side tells your computer which side of the laptop your external monitor
+stands on, so the pointer leaves through the edge that faces it. Click a side,
+pick it from the tray, press a shortcut or run `screen-side left`. Save the
+arrangement at each desk and it comes back by itself when you plug in there.
+
+It runs on Windows, macOS and Linux (GNOME, KDE Plasma, Sway, Hyprland, and
+X11 desktops such as Xfce), as an app with a tray icon and as a command line
+tool.
+
+Project site: <https://danieltyukov.github.io/screen-side-switcher/>
 
 ## Install
 
+Downloads are on the [releases page](https://github.com/danieltyukov/screen-side-switcher/releases/latest).
+
+**Windows.** Run `ScreenSide_x64-setup.exe`. It installs for your account with
+no admin prompt. The installer is not code-signed, so SmartScreen asks once:
+More info, then Run anyway. `ScreenSide_x64.msi` is the same build for managed
+machines.
+
+**macOS.** Open `ScreenSide_universal.dmg` (Apple silicon and Intel) and drag
+Screen Side to Applications. It is not notarised, so the first time macOS
+refuses to open it: go to System Settings, Privacy and Security, Open Anyway.
+
+**Linux.** `sudo apt install ./screen-side_amd64.deb` on Debian and Ubuntu, the
+`.rpm` on Fedora and openSUSE, or the `.AppImage` anywhere else (`chmod +x` it
+and run it). The `.deb` and `.rpm` include the `screen-side` command. Sway,
+Hyprland and other wlroots desktops also need `wlr-randr`; KDE needs
+`kscreen-doctor`, which Plasma installs.
+
+**Command line only.**
+
 ```
-git clone https://github.com/danieltyukov/screen-side-switcher.git
-cd screen-side-switcher
-./install.sh
+curl -LsSf https://danieltyukov.github.io/screen-side-switcher/install.sh | sh
+powershell -ExecutionPolicy ByPass -c "irm https://danieltyukov.github.io/screen-side-switcher/install.ps1 | iex"
+cargo install --git https://github.com/danieltyukov/screen-side-switcher screen-side
 ```
 
-That installs into `~/.local`, and "Screen Side" then appears in your
-applications list. Use `./install.sh --system` to install into `/usr/local` for
-every user, and `./uninstall.sh` to remove it.
-
-Requirements: GNOME 42 or newer, Python 3.10 or newer, and the GTK4 and
-libadwaita bindings.
-
-```
-sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1
-```
+The first line is for macOS and Linux, the second for Windows. Both check the
+download against the release's `SHA256SUMS`. Coming from Screen Side 1.0, the
+app and `install.sh` remove the old Python install from `~/.local` the first
+time they run. A 1.0 install made with `./install.sh --system` lives in
+`/usr/local`; remove it with 1.0's `sudo ./uninstall.sh --system`.
 
 ## Using it
 
-Open Screen Side from the applications list, then click a side. The change is
-applied immediately and saved, so it survives unplugging and reconnecting the
-monitor.
+Click a screen in the drawing, then a side. With several external screens,
+pick the one to move or move them all. Line up decides how the screens meet
+when they are different heights: top, centred or bottom. Make primary moves
+the menu bar or taskbar to the selected screen.
 
-The alignment control decides how the screens line up on the other axis. It
-matters when the two screens are different heights: with top alignment the
-pointer can only cross the part of the edge where they overlap, so centring
-usually feels better.
+On GNOME, a change made in the window or with the command line is saved, and
+GNOME asks you to keep it, as it does for its own display settings. Changes
+from the tray, the shortcut and automatic layouts do not ask, and last until
+the screens reconnect.
 
-## From the command line
+Under Layouts, save the arrangement for the screens connected now and mark it
+Auto to have it put back whenever they connect. Under Settings, keep Screen
+Side running in the background with a tray icon, start it at login, and set up
+a keyboard shortcut that swaps the sides.
 
-```
-screen-side                 show the current arrangement
-screen-side left            put the external screen on the left
-screen-side right           put it on the right
-screen-side above           put it above
-screen-side below           put it below
-screen-side toggle          flip between left and right
-screen-side left --align start
-screen-side right --temporary
-```
-
-`toggle` is meant for a keyboard shortcut. In Settings, under Keyboard,
-Custom Shortcuts, add a shortcut running:
+## Command line
 
 ```
-/home/YOUR_USER/.local/bin/screen-side toggle
+screen-side                     show the screens and how they are arranged
+screen-side left|right|above|below [--screen S] [--align start|center|end]
+screen-side toggle              swap left with right and above with below
+screen-side primary S           make a screen the primary one
+screen-side save NAME [--auto]  remember this arrangement for these screens
+screen-side apply NAME          put a saved arrangement back
+screen-side layouts | forget NAME
+screen-side watch               put saved layouts back as screens connect
+screen-side shortcut install    set up the toggle shortcut (GNOME), or say how
+screen-side doctor              what to paste into a bug report
 ```
 
-## How it works
+`S` is a number from `screen-side status`, a connector such as `HDMI-1`, or
+part of a name. `--dry-run` checks a change without making it, `--temporary`
+makes it until the next reconnect, and `--json` prints machine-readable output.
 
-Monitor layout on Wayland is owned by the compositor, so `xrandr` cannot change
-it. The supported route is the `org.gnome.Mutter.DisplayConfig` D-Bus
-interface: `GetCurrentState` reports the connected monitors, their modes and
-the current logical layout, and `ApplyMonitorsConfig` sets a new one.
+## Supported desktops
 
-Two details cause most of the trouble when writing against that interface.
+| Desktop | How Screen Side talks to it | Tested so far |
+|---|---|---|
+| GNOME (Wayland and X11), Pantheon, Budgie | Mutter display configuration over D-Bus | Reading and checking on GNOME 46 |
+| KDE Plasma 5 and 6 | `kscreen-doctor` | Against its documented output; reports welcome |
+| Sway, Hyprland, niri, river, labwc | `wlr-randr` | Against its documented output; reports welcome |
+| Xfce, MATE, i3 and other X11 | `xrandr` | Against its documented output; reports welcome |
+| Windows 10 and 11 | Display configuration API | Reading in CI; reports welcome |
+| macOS 12 and newer | Quartz Display Services | Reading in CI; reports welcome |
 
-The first is the global `layout-mode` property. When it is `logical`, monitor
-positions are given in scaled pixels, so a 3840 pixel wide panel at scale 2
-occupies 1920 units. When it is `physical`, positions are in raw device pixels
-and the same panel occupies 3840. Assuming the wrong one leaves a gap or an
-overlap between the screens, and the pointer then either refuses to cross or
-jumps. `screenside/mutter.py` reads the property and computes extents to match.
+If yours is missing or misbehaves, open a
+[desktop support issue](https://github.com/danieltyukov/screen-side-switcher/issues/new?template=desktop.yml)
+with the output of `screen-side doctor`. [docs/BACKENDS.md](docs/BACKENDS.md)
+explains how each one works and how to add another.
 
-The second is that Mutter rejects overlapping monitors outright, and a layout
-where two screens meet only at a corner gives the pointer nowhere to cross.
-`screenside/layout.py` therefore computes exact adjacency along the chosen axis
-and a deliberate alignment on the other one.
-
-## Layout
+## Build from source
 
 ```
-screenside/mutter.py   D-Bus wrapper, state model, apply
-screenside/layout.py   turns "left" into absolute coordinates
-screenside/cli.py      command line
-screenside/app.py      GTK4 and libadwaita interface
-data/                  desktop entry and icon
+npm ci
+npm run build -w app               # the app shell embeds the built interface
+npm run tauri dev                  # the app, against your real screens
+cargo test --workspace && npm test
+SCREEN_SIDE_BACKEND=fake cargo run -p screen-side -- status
 ```
+
+The fake backend keeps two pretend screens in a JSON file, so everything can
+be tried with one monitor. [CONTRIBUTING.md](CONTRIBUTING.md) has the rest,
+and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains how a click becomes
+a layout.
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. Report problems through the
+[issue forms](https://github.com/danieltyukov/screen-side-switcher/issues/new/choose),
+and bring ideas and questions to
+[Discussions](https://github.com/danieltyukov/screen-side-switcher/discussions).
+Packaging for Homebrew, winget, the AUR or Flathub would help a lot.
 
 ## Licence
 
-MIT. See LICENSE.
+MIT. See [LICENSE](LICENSE).

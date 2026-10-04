@@ -1,0 +1,429 @@
+mod common;
+
+use common::{at, monitor, Env};
+use predicates::prelude::*;
+use screen_side_core::backend::fake::FakeFile;
+use screen_side_core::backend::ApplyMode;
+use screen_side_core::model::Rect;
+
+fn sample() -> Env {
+    Env::new(FakeFile::sample())
+}
+
+fn stdout(output: &std::process::Output) -> String {
+    String::from_utf8(output.stdout.clone()).unwrap()
+}
+
+#[test]
+fn status_describes_the_sample() {
+    let env = sample();
+    env.cmd().arg("status").assert().success().stdout(
+        predicate::str::contains("External screen is left of the built-in screen.")
+            .and(predicate::str::contains("Alignment: centred."))
+            .and(predicate::str::contains("HDMI-1"))
+            .and(predicate::str::contains("DELL U2723QE"))
+            .and(predicate::str::contains("2560x1440"))
+            .and(predicate::str::contains("primary"))
+            .and(predicate::str::contains("Backend: fake")),
+    );
+}
+
+#[test]
+fn no_command_means_status() {
+    let env = sample();
+    env.cmd()
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("External screen is left"));
+}
+
+#[test]
+fn status_json_has_schema_and_numbers() {
+    let env = sample();
+    let out = env.cmd().args(["status", "--json"]).output().unwrap();
+    assert!(out.status.success());
+    let text = stdout(&out);
+    let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(v["schema"], 1);
+    assert_eq!(v["screens"][0]["number"], 1);
+    assert_eq!(v["screens"][0]["id"], "HDMI-1");
+    assert_eq!(v["arrangement"]["placements"][0]["side"], "left");
+    assert_eq!(v["capabilities"]["origin"], "top_left");
+    assert!(!text.contains("serial") && !text.contains("FAKE0001"));
+}
+
+#[test]
+fn right_moves_the_external_screen() {
+    let env = sample();
+    env.cmd()
+        .arg("right")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("right of the built-in screen"));
+    let file = env.read();
+    assert_eq!(at(&file, "HDMI-1"), (1280, 0));
+    assert_eq!(at(&file, "eDP-1"), (0, 320));
+    assert_eq!(file.last_apply, Some(ApplyMode::Persistent));
+}
+
+#[test]
+fn temporary_and_dry_run() {
+    let env = sample();
+    env.cmd().args(["above", "--temporary"]).assert().success();
+    assert_eq!(env.read().last_apply, Some(ApplyMode::Temporary));
+    let before = env.raw();
+    env.cmd()
+        .args(["right", "--dry-run"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Dry run").and(predicate::str::contains("checked")));
+    assert_eq!(env.raw(), before);
+}
+
+#[test]
+fn toggle_flips_and_flips_back() {
+    let env = sample();
+    let start = env.read();
+    env.cmd().arg("toggle").assert().success();
+    assert_eq!(at(&env.read(), "HDMI-1"), (1280, 0));
+    env.cmd().arg("toggle").assert().success();
+    let end = env.read();
+    assert_eq!(at(&end, "HDMI-1"), at(&start, "HDMI-1"));
+    assert_eq!(at(&end, "eDP-1"), at(&start, "eDP-1"));
+}
+
+#[test]
+fn align_end_and_primary() {
+    let env = sample();
+    env.cmd().args(["align", "end"]).assert().success();
+    let file = env.read();
+    let bottom = |id: &str| {
+        let s = file.screens.iter().find(|s| s.id == id).unwrap();
+        s.rect.y + s.rect.height
+    };
+    assert_eq!(bottom("HDMI-1"), bottom("eDP-1"));
+    env.cmd().args(["primary", "1"]).assert().success();
+    let file = env.read();
+    assert!(
+        file.screens
+            .iter()
+            .find(|s| s.id == "HDMI-1")
+            .unwrap()
+            .primary
+    );
+    assert!(
+        !file
+            .screens
+            .iter()
+            .find(|s| s.id == "eDP-1")
+            .unwrap()
+            .primary
+    );
+}
+
+fn three_screens() -> Env {
+    let mut file = FakeFile::sample();
+    file.screens.push(monitor(
+        "DP-1",
+        "DELL P2422H",
+        Rect::new(3840, 320, 1920, 1080),
+    ));
+    Env::new(file)
+}
+
+#[test]
+fn screen_selector() {
+    let env = three_screens();
+    env.cmd()
+        .args(["left", "--screen", "dell"])
+        .assert()
+        .code(2)
+        .stderr(
+            predicate::str::contains("DELL U2723QE").and(predicate::str::contains("DELL P2422H")),
+        );
+    env.cmd()
+        .args(["left", "--screen", "DP-1"])
+        .assert()
+        .success();
+    let file = env.read();
+    let x = |id: &str| at(&file, id).0;
+    assert!(x("DP-1") < x("HDMI-1") && x("HDMI-1") < x("eDP-1"));
+    env.cmd().args(["left", "--screen", "9"]).assert().code(2);
+}
+
+#[test]
+fn switched_off_screen_is_listed_and_refused() {
+    let mut file = FakeFile::sample();
+    file.screens[0].enabled = false;
+    file.screens[0].primary = false;
+    file.screens[1].primary = true;
+    file.screens
+        .push(monitor("DP-1", "LG HDR 4K", Rect::new(2560, 0, 1920, 1080)));
+    let env = Env::new(file);
+    env.cmd()
+        .assert()
+        .success()
+        .stdout(predicate::str::is_match(r"eDP-1 +Built-in display +off").unwrap());
+    env.cmd()
+        .args(["left", "--screen", "eDP-1"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("switched off"));
+}
+
+#[test]
+fn one_screen_is_a_clear_error() {
+    let mut file = FakeFile::sample();
+    file.screens[0].enabled = false;
+    let env = Env::new(file);
+    env.cmd()
+        .arg("left")
+        .assert()
+        .code(1)
+        .stderr(predicate::str::contains("Only one screen is switched on"));
+}
+
+#[test]
+fn overlap_is_refused_without_changes() {
+    let mut file = FakeFile::sample();
+    file.screens[1].name = "Left monitor".into();
+    file.screens.push(monitor(
+        "DP-1",
+        "Right monitor",
+        Rect::new(3840, 0, 2560, 1440),
+    ));
+    let env = Env::new(file);
+    let before = env.raw();
+    env.cmd()
+        .args(["above", "--screen", "DP-1", "--align", "center"])
+        .assert()
+        .code(1)
+        .stderr(predicate::str::contains("would overlap"));
+    assert_eq!(env.raw(), before);
+}
+
+#[test]
+fn primary_unsupported() {
+    let mut file = FakeFile::sample();
+    file.capabilities.primary = false;
+    let env = Env::new(file);
+    env.cmd()
+        .args(["primary", "1"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("no primary screen"));
+}
+
+#[test]
+fn temporary_refused_where_the_system_saves() {
+    let mut file = FakeFile::sample();
+    file.capabilities.temporary = false;
+    file.capabilities.remembers = true;
+    let env = Env::new(file);
+    env.cmd().args(["left", "--temporary"]).assert().code(2);
+}
+
+#[test]
+fn version_and_help() {
+    let env = sample();
+    env.cmd()
+        .arg("--version")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("2.0.0"));
+    env.cmd().arg("--help").assert().success().stdout(
+        predicate::str::contains("toggle")
+            .and(predicate::str::contains("primary"))
+            .and(predicate::str::contains("align")),
+    );
+}
+
+#[test]
+fn save_apply_layouts_forget() {
+    let env = sample();
+    env.cmd()
+        .args(["save", "office", "--auto"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Saved 'office'"));
+    env.cmd().arg("right").assert().success();
+    env.cmd().args(["apply", "office"]).assert().success();
+    assert_eq!(at(&env.read(), "HDMI-1"), (0, 0));
+    env.cmd().arg("layouts").assert().success().stdout(
+        predicate::str::contains("office")
+            .and(predicate::str::contains("auto"))
+            .and(predicate::str::contains("these screens")),
+    );
+    let out = env.cmd().args(["layouts", "--json"]).output().unwrap();
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(v["schema"], 1);
+    assert_eq!(v["layouts"][0]["name"], "office");
+    assert_eq!(v["layouts"][0]["matches"], true);
+    env.cmd()
+        .arg("status")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Saved layout in force: office."));
+    env.cmd().args(["forget", "office"]).assert().success();
+    env.cmd()
+        .arg("layouts")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No layouts are saved yet."));
+}
+
+#[test]
+fn apply_for_other_screens_is_refused() {
+    let env = sample();
+    env.cmd().args(["save", "office"]).assert().success();
+    let mut file = env.read();
+    file.screens[1].identity.serial = "SOMEONE-ELSE".into();
+    env.write(&file);
+    env.cmd()
+        .args(["apply", "office"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("other screens"));
+}
+
+#[test]
+fn layout_name_with_a_quote() {
+    let env = sample();
+    env.cmd().args(["save", "Mum's desk"]).assert().success();
+    env.cmd().arg("right").assert().success();
+    env.cmd().args(["apply", "mum's desk"]).assert().success();
+    assert_eq!(at(&env.read(), "HDMI-1"), (0, 0));
+}
+
+#[test]
+fn corrupt_layouts_file() {
+    let env = sample();
+    std::fs::create_dir_all(env.config()).unwrap();
+    let path = env.config().join("layouts.json");
+    std::fs::write(&path, "{ not json").unwrap();
+    env.cmd().arg("left").assert().success();
+    env.cmd()
+        .arg("status")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Saved layout").not());
+    env.cmd()
+        .args(["save", "x"])
+        .assert()
+        .code(1)
+        .stderr(predicate::str::contains("layouts.json"));
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "{ not json");
+}
+
+#[test]
+fn layouts_and_forget_work_without_a_backend() {
+    let env = sample();
+    env.cmd()
+        .env("SCREEN_SIDE_BACKEND", "nope")
+        .arg("layouts")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No layouts are saved yet."));
+    env.cmd()
+        .env("SCREEN_SIDE_BACKEND", "nope")
+        .args(["forget", "office"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("no saved layout called 'office'"));
+}
+
+#[test]
+fn watch_rejects_a_bad_interval_and_explains_itself() {
+    let env = sample();
+    env.cmd()
+        .args(["watch", "--interval", "0"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("--interval"));
+    env.cmd()
+        .args(["watch", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("saved layouts"));
+}
+
+#[test]
+fn shortcut_on_sway_prints_the_bindsym_line() {
+    let env = sample();
+    let bin = assert_cmd::cargo::cargo_bin("screen-side");
+    let bin = std::fs::canonicalize(bin).unwrap();
+    env.cmd()
+        .env("SCREEN_SIDE_DESKTOP", "sway")
+        .args(["shortcut", "install"])
+        .assert()
+        .success()
+        .stdout(
+            predicate::str::contains("bindsym Mod4+Mod1+s exec")
+                .and(predicate::str::contains(bin.to_string_lossy().as_ref()))
+                .and(predicate::str::contains("'toggle'")),
+        );
+}
+
+#[test]
+fn shortcut_on_x11_is_left_to_the_app() {
+    let env = sample();
+    env.cmd()
+        .env("SCREEN_SIDE_DESKTOP", "x11")
+        .args(["shortcut", "show"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("app registers the shortcut"));
+}
+
+#[test]
+fn doctor_text_and_json() {
+    let env = sample();
+    env.cmd().arg("doctor").assert().success().stdout(
+        predicate::str::contains("Screen Side 2.0.0")
+            .and(predicate::str::contains("Backend: fake"))
+            .and(predicate::str::contains("FAKE0001").not()),
+    );
+    let out = env.cmd().args(["doctor", "--json"]).output().unwrap();
+    assert!(out.status.success());
+    let text = stdout(&out);
+    let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(v["schema"], 1);
+    assert_eq!(v["backend"], "fake");
+    assert!(!text.contains("FAKE0001"));
+}
+
+#[test]
+fn doctor_succeeds_without_a_backend() {
+    let env = sample();
+    env.cmd()
+        .env("SCREEN_SIDE_BACKEND", "nope")
+        .arg("doctor")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No backend:"));
+}
+
+#[test]
+fn one_screen_has_no_arrangement_in_json() {
+    let mut file = FakeFile::sample();
+    file.screens[0].enabled = false;
+    file.screens[1].primary = true;
+    let env = Env::new(file);
+    let out = env.cmd().args(["status", "--json"]).output().unwrap();
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(v["arrangement"], serde_json::Value::Null);
+}
+
+#[test]
+fn saving_overlapping_screens_is_refused() {
+    let mut file = FakeFile::sample();
+    file.screens[0].rect.x = 0;
+    file.screens[0].rect.y = 0;
+    let env = Env::new(file);
+    env.cmd()
+        .args(["save", "office"])
+        .assert()
+        .code(2)
+        .stderr(predicate::str::contains("Pick a side"));
+    assert!(!env.config().join("layouts.json").exists());
+}

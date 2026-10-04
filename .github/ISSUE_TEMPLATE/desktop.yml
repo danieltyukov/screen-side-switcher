@@ -1,0 +1,46 @@
+name: Desktop support
+description: My desktop is not supported, or Screen Side misbehaves on it.
+labels: [desktop]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Screen Side reads each desktop through its own tool. What that tool
+        prints on your session is usually all that is needed to add or fix
+        support. Replace serial numbers in it with made-up values.
+  - type: input
+    id: desktop
+    attributes:
+      label: Desktop and version
+      placeholder: KDE Plasma 6.2, Hyprland 0.45, Xfce 4.18
+    validations:
+      required: true
+  - type: dropdown
+    id: session
+    attributes:
+      label: Session type
+      options:
+        - Wayland
+        - X11
+        - Windows
+        - macOS
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `screen-side doctor`
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: raw
+    attributes:
+      label: What the desktop's tool prints
+      description: One of `kscreen-doctor --json`, `wlr-randr --json` or `xrandr --current --props`, with two screens connected.
+      render: text
+  - type: textarea
+    id: what
+    attributes:
+      label: What went wrong
+      description: For example the screens ended up a pixel apart, or the wrong screen moved.

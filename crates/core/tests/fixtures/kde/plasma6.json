@@ -1,0 +1,133 @@
+{
+  "outputs": [
+    {
+      "id": 2,
+      "name": "HDMI-A-1",
+      "type": 6,
+      "icon": "",
+      "pos": {
+        "x": 0,
+        "y": 0
+      },
+      "scale": 1.0,
+      "size": {
+        "width": 2560,
+        "height": 1440
+      },
+      "rotation": 1,
+      "currentModeId": "1",
+      "preferredModes": [
+        "1"
+      ],
+      "connected": true,
+      "followPreferredMode": false,
+      "enabled": true,
+      "clones": [],
+      "sizeMM": {
+        "width": 600,
+        "height": 340
+      },
+      "replicationSource": 0,
+      "modes": [
+        {
+          "id": "1",
+          "name": "2560x1440@59",
+          "size": {
+            "width": 2560,
+            "height": 1440
+          },
+          "refreshRate": 59.95
+        }
+      ],
+      "priority": 2
+    },
+    {
+      "id": 1,
+      "name": "eDP-1",
+      "type": 7,
+      "icon": "",
+      "pos": {
+        "x": 2560,
+        "y": 0
+      },
+      "scale": 1.5,
+      "size": {
+        "width": 2560,
+        "height": 1600
+      },
+      "rotation": 1,
+      "currentModeId": "3",
+      "preferredModes": [
+        "3"
+      ],
+      "connected": true,
+      "followPreferredMode": false,
+      "enabled": true,
+      "clones": [],
+      "sizeMM": {
+        "width": 600,
+        "height": 340
+      },
+      "replicationSource": 0,
+      "modes": [
+        {
+          "id": "3",
+          "name": "2560x1600@60",
+          "size": {
+            "width": 2560,
+            "height": 1600
+          },
+          "refreshRate": 60.0
+        }
+      ],
+      "priority": 1
+    },
+    {
+      "id": 3,
+      "name": "DP-1",
+      "type": 14,
+      "icon": "",
+      "pos": {
+        "x": 0,
+        "y": 0
+      },
+      "scale": 1.0,
+      "size": {
+        "width": 0,
+        "height": 0
+      },
+      "rotation": 1,
+      "currentModeId": "",
+      "preferredModes": [],
+      "connected": false,
+      "followPreferredMode": false,
+      "enabled": false,
+      "clones": [],
+      "sizeMM": {
+        "width": 600,
+        "height": 340
+      },
+      "replicationSource": 0,
+      "modes": [],
+      "priority": 0
+    }
+  ],
+  "screen": {
+    "id": 0,
+    "currentSize": {
+      "width": 4267,
+      "height": 1440
+    },
+    "maxSize": {
+      "width": 16384,
+      "height": 16384
+    },
+    "minSize": {
+      "width": 0,
+      "height": 0
+    },
+    "maxActiveOutputsCount": 3
+  },
+  "tabletModeAvailable": false,
+  "tabletModeEngaged": false
+}

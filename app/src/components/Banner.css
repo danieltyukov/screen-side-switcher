@@ -1,0 +1,16 @@
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-m);
+  background: var(--danger-tint);
+  color: var(--text);
+}
+
+.banner p {
+  flex: 1;
+  margin: 0;
+}

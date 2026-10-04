@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "What the Screen Side window may ask the shell for directly: events, opening the project's links and copying diagnostics. Everything that touches the screens goes through the app's own commands.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "opener:allow-open-url",
+    "opener:allow-default-urls",
+    "clipboard-manager:allow-write-text"
+  ]
+}

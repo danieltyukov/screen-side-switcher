@@ -1,0 +1,111 @@
+/*
+ * Design tokens for the app and the project site. Every colour, size,
+ * radius and duration is declared here once.
+ *
+ * The rule that keeps theming correct: the full light palette lives on bare
+ * :root, and the two dark blocks below redefine only what changes. They must
+ * stay identical, because the first applies when the system is dark and the
+ * person has not chosen light, and the second when the person chose dark.
+ * tokens.test.ts holds them together.
+ *
+ * Colour comes from the icon: a deep blue for everything interactive, and
+ * the pointer yellow for one thing only, the edge the pointer crosses.
+ */
+
+:root {
+  --bg: #f3f6fa;
+  --surface: #ffffff;
+  /* The desk under the preview, and pressed controls. */
+  --surface-2: #e8eef5;
+  --border: #d6dee8;
+  --border-strong: #b7c3d2;
+  --text: #10213a;
+  --muted: #4e5d73;
+  --accent: #1c62a8;
+  --accent-hover: #164f89;
+  --accent-tint: #e3eef9;
+  --on-accent: #ffffff;
+  /* The edge the pointer crosses, and the pointer itself. Nothing else. */
+  --pointer: #ffd45e;
+  --pointer-ink: #10213a;
+  /* The cursor glyph looks like a real pointer in both themes. */
+  --cursor: #ffffff;
+  --cursor-ink: #10213a;
+  /* Screens in the preview. */
+  --glass: #dbe6f2;
+  --glass-primary: #c6dbf2;
+  --bezel: #10213a;
+  --danger: #b42318;
+  --danger-tint: #fdecea;
+  --focus: #1c62a8;
+
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-l: 14px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Cantarell, Ubuntu, 'Noto Sans', 'Helvetica Neue',
+    Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'DejaVu Sans Mono', Menlo, monospace;
+  --text-s: 0.8125rem;
+  --text-m: 0.9375rem;
+  --text-l: 1.25rem;
+  --leading: 1.45;
+
+  --dur-fast: 120ms;
+  --dur-med: 260ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0e1726;
+    --surface: #152238;
+    --surface-2: #1b2b45;
+    --border: #263a59;
+    --border-strong: #36507a;
+    --text: #e7eef7;
+    --muted: #9aabc2;
+    --accent: #6fa8e8;
+    --accent-hover: #8dbcf0;
+    --accent-tint: #1d3354;
+    --on-accent: #0e1726;
+    --pointer-ink: #0e1726;
+    --glass: #22385a;
+    --glass-primary: #2b4a78;
+    --bezel: #9aabc2;
+    --danger: #ff8a80;
+    --danger-tint: #3a1d22;
+    --focus: #8dbcf0;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #0e1726;
+  --surface: #152238;
+  --surface-2: #1b2b45;
+  --border: #263a59;
+  --border-strong: #36507a;
+  --text: #e7eef7;
+  --muted: #9aabc2;
+  --accent: #6fa8e8;
+  --accent-hover: #8dbcf0;
+  --accent-tint: #1d3354;
+  --on-accent: #0e1726;
+  --pointer-ink: #0e1726;
+  --glass: #22385a;
+  --glass-primary: #2b4a78;
+  --bezel: #9aabc2;
+  --danger: #ff8a80;
+  --danger-tint: #3a1d22;
+  --focus: #8dbcf0;
+  color-scheme: dark;
+}

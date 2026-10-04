@@ -1,0 +1,121 @@
+.preview {
+  border-radius: var(--radius-l);
+  background: var(--surface-2);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+}
+
+.preview-svg {
+  display: block;
+  width: 100%;
+  height: 210px;
+  overflow: visible;
+}
+
+.preview .screen {
+  cursor: pointer;
+  transition: transform var(--dur-med) var(--ease);
+  outline: none;
+}
+
+.preview .bezel {
+  fill: var(--bezel);
+}
+
+.preview .base {
+  fill: var(--border-strong);
+}
+
+.preview .glass {
+  fill: var(--glass);
+  transition: fill var(--dur-fast) var(--ease);
+}
+
+.preview .glass.primary {
+  fill: var(--glass-primary);
+}
+
+.preview .screen:hover .glass {
+  fill: var(--glass-primary);
+}
+
+.preview .screen[data-selected] .bezel,
+.preview .screen:focus-visible .bezel {
+  fill: var(--accent);
+}
+
+.preview .name {
+  fill: var(--text);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.preview .tag {
+  fill: var(--muted);
+  font-family: var(--font-ui);
+  pointer-events: none;
+}
+
+.preview .edge,
+.preview .edge-under {
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.preview .edge {
+  stroke: var(--pointer);
+}
+
+/* Gives the yellow an edge of its own on the light ground. */
+.preview .edge-under {
+  stroke: var(--pointer-ink);
+  opacity: 0.55;
+}
+
+.preview .pointer {
+  pointer-events: none;
+  transition: transform var(--dur-med) var(--ease);
+}
+
+.preview .cursor {
+  fill: var(--cursor);
+  stroke: var(--cursor-ink);
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  animation: cross 2.4s var(--ease) infinite;
+}
+
+/* The pointer drifts across the edge it is about to cross. */
+@keyframes cross {
+  0%,
+  20% {
+    translate: var(--from-x) var(--from-y);
+  }
+  60%,
+  100% {
+    translate: var(--to-x) var(--to-y);
+  }
+}
+
+.preview-off {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: var(--text-s);
+  text-align: center;
+}
+
+.preview-empty {
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview .screen,
+  .preview .pointer {
+    transition: none;
+  }
+  .preview .cursor {
+    animation: none;
+  }
+}

@@ -1,0 +1,28 @@
+.tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+}
+
+.tabs [role='tab'] {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: calc(var(--radius-m) - 3px);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.tabs [role='tab']:hover {
+  color: var(--text);
+}
+
+.tabs [role='tab'][aria-selected='true'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--border);
+}

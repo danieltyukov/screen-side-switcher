@@ -1,0 +1,43 @@
+.app {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  min-height: 100vh;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-5) var(--space-3);
+}
+
+.app-head {
+  margin-bottom: var(--space-4);
+}
+
+.panel {
+  outline: none;
+}
+
+.loading {
+  color: var(--muted);
+}
+
+.no-backend {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.no-backend p {
+  margin: 0;
+}
+
+.no-backend-message {
+  padding: var(--space-4);
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  font-weight: 550;
+}
+
+.status {
+  min-height: 1.45em;
+  margin: var(--space-3) 0 0;
+  color: var(--muted);
+  font-size: var(--text-s);
+}

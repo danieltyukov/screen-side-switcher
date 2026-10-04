@@ -1,0 +1,340 @@
+name: Release
+
+# On a v* tag: the app installers for Linux, Windows and macOS, the command
+# line archives for five platforms, and SHA256SUMS, attached to one GitHub
+# release. Asset names carry no version, so the site's and README's
+# releases/latest/download/<name> links keep working across releases.
+
+on:
+  push:
+    tags: ['v*']
+  # Run by hand from a branch, it builds every asset and publishes nothing:
+  # a way to try a release before tagging one.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  BUNDLE_DIR: target/release/bundle
+
+jobs:
+  check:
+    name: Versions agree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            sh scripts/check-version.sh "$GITHUB_REF_NAME"
+            sh scripts/release-notes.sh "$GITHUB_REF_NAME" > /dev/null
+          else
+            sh scripts/check-version.sh
+          fi
+
+  linux-app:
+    name: deb, rpm and AppImage
+    needs: check
+    # 22.04 on purpose: a binary built on newer glibc does not start on older
+    # systems, and 22.04 is the oldest image with WebKitGTK 4.1.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+
+      # librsvg2-dev is only needed by the AppImage step, which otherwise
+      # fails with a message about librsvg that does not mention AppImage.
+      - name: Install the WebKitGTK toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Cache the Rust build
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-release-linux-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-release-linux-
+
+      - run: npm ci
+
+      # The deb and rpm also install /usr/bin/screen-side (tauri.conf.json,
+      # bundle.linux.*.files), so the command line tool is built first.
+      - name: Build the command line tool
+        run: cargo build --release -p screen-side
+
+      # The cached target/ holds the previous release's bundles, whose names
+      # carry the version; without the rm the collector finds two of each.
+      - name: Build the bundles
+        working-directory: app
+        run: |
+          set -eu
+          rm -rf "../$BUNDLE_DIR"
+          npx tauri build --bundles deb,rpm,appimage
+
+      - name: Collect them under stable names
+        run: |
+          set -eu
+          mkdir -p out
+          take() {
+            dest="$1"; shift
+            if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then
+              echo "expected exactly one bundle for $dest, found $#: $*" >&2
+              find "$BUNDLE_DIR" -maxdepth 2 -type f >&2 || true
+              exit 1
+            fi
+            cp "$1" "out/$dest"
+            echo "$1 -> $dest"
+          }
+          take screen-side_amd64.deb "$BUNDLE_DIR"/deb/*.deb
+          take screen-side_x86_64.rpm "$BUNDLE_DIR"/rpm/*.rpm
+          take screen-side_x86_64.AppImage "$BUNDLE_DIR"/appimage/*.AppImage
+          dpkg -c out/screen-side_amd64.deb | grep -E 'usr/bin/screen-side(-gui)?$'
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux-app
+          path: out/
+          retention-days: 1
+          if-no-files-found: error
+
+  windows-app:
+    name: Windows installers
+    needs: check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache the Rust build
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-release-windows-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-release-windows-
+
+      - run: npm ci
+
+      # tauri.windows.conf.json switches the targets to nsis and msi.
+      - name: Build the installers
+        working-directory: app
+        shell: bash
+        run: |
+          set -eu
+          rm -rf "../$BUNDLE_DIR"
+          npx tauri build --bundles nsis,msi
+
+      - name: Collect them under stable names
+        shell: bash
+        run: |
+          set -eu
+          shopt -s nullglob
+          mkdir -p out
+          take() {
+            dest="$1"; shift
+            if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then
+              echo "expected exactly one bundle for $dest, found $#: $*" >&2
+              exit 1
+            fi
+            cp "$1" "out/$dest"
+            echo "$1 -> $dest"
+          }
+          take ScreenSide_x64-setup.exe "$BUNDLE_DIR"/nsis/*.exe
+          take ScreenSide_x64.msi "$BUNDLE_DIR"/msi/*.msi
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-app
+          path: out/
+          retention-days: 1
+          if-no-files-found: error
+
+  macos-app:
+    name: macOS disk image
+    needs: check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+
+      - name: Cache the Rust build
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-release-macos-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-release-macos-
+
+      - run: npm ci
+
+      # Ad-hoc signed (signingIdentity "-" in tauri.conf.json): not notarised,
+      # so the first open needs Open Anyway, which the README explains.
+      - name: Build the disk image
+        working-directory: app
+        run: |
+          set -eu
+          rm -rf ../target/universal-apple-darwin/release/bundle
+          npx tauri build --target universal-apple-darwin --bundles dmg
+
+      - name: Collect it under a stable name
+        run: |
+          set -eu
+          mkdir -p out
+          set -- target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then echo "expected one dmg, found $#" >&2; exit 1; fi
+          cp "$1" out/ScreenSide_universal.dmg
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos-app
+          path: out/
+          retention-days: 1
+          if-no-files-found: error
+
+  cli:
+    name: Command line / ${{ matrix.asset }}
+    needs: check
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            asset: screen-side-linux-x64.tar.gz
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            asset: screen-side-linux-arm64.tar.gz
+          - os: macos-latest
+            target: universal
+            asset: screen-side-macos-universal.tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset: screen-side-windows-x64.zip
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            asset: screen-side-windows-arm64.zip
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target == 'universal' && 'aarch64-apple-darwin, x86_64-apple-darwin' || matrix.target }}
+
+      # Static binaries on Linux, so one archive runs on any distribution.
+      - name: Install the musl linker
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y musl-tools
+
+      - name: Build (Linux, Windows)
+        if: matrix.target != 'universal'
+        run: cargo build --release -p screen-side --target ${{ matrix.target }}
+
+      - name: Build (macOS, both architectures in one binary)
+        if: matrix.target == 'universal'
+        run: |
+          set -eu
+          cargo build --release -p screen-side --target aarch64-apple-darwin
+          cargo build --release -p screen-side --target x86_64-apple-darwin
+          mkdir -p target/universal/release
+          lipo -create -output target/universal/release/screen-side \
+            target/aarch64-apple-darwin/release/screen-side \
+            target/x86_64-apple-darwin/release/screen-side
+          lipo -info target/universal/release/screen-side
+
+      - name: Pack (Linux, macOS)
+        if: runner.os != 'Windows'
+        run: sh scripts/pack-cli.sh "target/${{ matrix.target }}/release/screen-side" "${{ matrix.asset }}" out
+
+      - name: Pack (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path stage, out | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/screen-side.exe", LICENSE, README.md stage
+          Compress-Archive -Path stage/* -DestinationPath "out/${{ matrix.asset }}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cli-${{ matrix.asset }}
+          path: out/
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    name: Publish
+    needs: [linux-app, windows-app, macos-app, cli]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: assets
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: assets
+        run: |
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+
+      # gh rather than a third-party release action: it is preinstalled and
+      # uses this job's own token.
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          {
+            sh scripts/release-notes.sh "$TAG"
+            cat <<'BODY'
+
+          ## Downloads
+
+          - Windows: `ScreenSide_x64-setup.exe` installs for your account with no admin prompt. It is not code-signed, so SmartScreen asks once: More info, then Run anyway. `ScreenSide_x64.msi` is the same build for managed machines.
+          - macOS: `ScreenSide_universal.dmg`, for Apple silicon and Intel. It is not notarised, so the first open needs System Settings, Privacy and Security, Open Anyway.
+          - Linux: `screen-side_amd64.deb` (`sudo apt install ./screen-side_amd64.deb`), `screen-side_x86_64.rpm`, or `screen-side_x86_64.AppImage` (`chmod +x`, then run it).
+          - Command line only: `curl -LsSf https://danieltyukov.github.io/screen-side-switcher/install.sh | sh` on macOS and Linux, or `install.ps1` on Windows. The archives are attached too; `SHA256SUMS` lists their checksums.
+          BODY
+          } > notes.md
+          gh release create "$TAG" \
+            --title "Screen Side ${TAG#v}" \
+            --notes-file notes.md \
+            --verify-tag \
+            assets/*
