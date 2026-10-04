@@ -7,21 +7,23 @@ import { fileURLToPath } from 'node:url';
  */
 const out = (name: string) => fileURLToPath(new URL(`../../docs/img/${name}`, import.meta.url));
 
-test.use({ deviceScaleFactor: 2 });
+// A short viewport with fullPage: the page is then exactly as tall as its
+// content, so the shots carry no empty window below the last control.
+test.use({ deviceScaleFactor: 2, viewport: { width: 560, height: 320 } });
 
 for (const theme of ['light', 'dark'] as const) {
   test(`arrange, ${theme}`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto(`/?screens=3&theme=${theme}`);
+    await page.goto(`/?screens=3&theme=${theme}&backend=kde`);
     await page.getByRole('radiogroup', { name: 'Screen to move' }).getByText('DELL U2723QE').click();
     await page.getByRole('group', { name: 'Side' }).getByRole('button', { name: 'Left' }).waitFor();
-    await page.screenshot({ path: out(`app-${theme}.png`) });
+    await page.screenshot({ path: out(`app-${theme}.png`), fullPage: true });
   });
 }
 
 test('layouts', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/?screens=2&theme=light');
+  await page.goto('/?screens=2&theme=light&backend=kde');
   await page.getByRole('tab', { name: 'Layouts' }).click();
   for (const [name, auto] of [['Office', true], ['Home desk', false]] as const) {
     await page.getByLabel('Name').fill(name);
@@ -30,5 +32,5 @@ test('layouts', async ({ page }) => {
     await page.getByRole('status').getByText(`Saved ${name}`).waitFor();
   }
   await page.getByRole('status').evaluate((el) => (el.textContent = ''));
-  await page.screenshot({ path: out('app-layouts.png') });
+  await page.screenshot({ path: out('app-layouts.png'), fullPage: true });
 });
