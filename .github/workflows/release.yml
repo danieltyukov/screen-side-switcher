@@ -8,6 +8,9 @@ name: Release
 on:
   push:
     tags: ['v*']
+  # Run by hand from a branch, it builds every asset and publishes nothing:
+  # a way to try a release before tagging one.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,8 +28,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - run: sh scripts/check-version.sh "$GITHUB_REF_NAME"
-      - run: sh scripts/release-notes.sh "$GITHUB_REF_NAME" > /dev/null
+      - run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            sh scripts/check-version.sh "$GITHUB_REF_NAME"
+            sh scripts/release-notes.sh "$GITHUB_REF_NAME" > /dev/null
+          else
+            sh scripts/check-version.sh
+          fi
 
   linux-app:
     name: deb, rpm and AppImage
@@ -287,6 +295,7 @@ jobs:
   publish:
     name: Publish
     needs: [linux-app, windows-app, macos-app, cli]
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:
       contents: write

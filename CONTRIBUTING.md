@@ -77,7 +77,9 @@ Bump the version in `Cargo.toml`, `app/package.json`, `site/package.json`
 and `app/src-tauri/tauri.conf.json` (`sh scripts/check-version.sh` checks
 they agree), move the "Unreleased" notes into a section for the version, and
 push a `vX.Y.Z` tag. The release workflow builds every installer and archive
-and publishes them with the CHANGELOG section as notes.
+and publishes them with the CHANGELOG section as notes. To try the builds
+first, run it by hand (`gh workflow run release.yml --ref main`): it builds
+everything and publishes nothing.
 
 ## Help wanted
 
